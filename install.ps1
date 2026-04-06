@@ -2,8 +2,8 @@ param(
     [string]$DownloadLink = "https://parz-retro-steam.vercel.app/parzivalretrosteam.zip"
 )
 
-## --- CONFIGURAÇÕES INICIAIS ---
-$Host.UI.RawUI.WindowTitle = "Instalação - Parzival Retrô"
+## --- CONFIGURACOES INICIAIS ---
+$Host.UI.RawUI.WindowTitle = "Instalacao - Parzival Retro"
 $name = "parzivalretrosteam" 
 $steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam").InstallPath
 $ProgressPreference = 'SilentlyContinue'
@@ -11,7 +11,7 @@ $ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 chcp 65001 > $null
 
-# Função para mensagens genéricas simulando carregamento
+# Funcao para mensagens genericas simulando carregamento
 function Mostrar-Mensagem {
     param ([string]$Texto, [int]$Tempo = 2)
     Write-Host "[*] $Texto..." -ForegroundColor Cyan
@@ -20,21 +20,21 @@ function Mostrar-Mensagem {
 
 Clear-Host
 Write-Host "========================================" -ForegroundColor Magenta
-Write-Host "       PARZIVAL RETRÔ STEAM SETUP       " -ForegroundColor White
+Write-Host "       PARZIVAL RETRO STEAM SETUP       " -ForegroundColor White
 Write-Host "========================================" -ForegroundColor Magenta
 Write-Host ""
 
-Mostrar-Mensagem "Iniciando processo de instalação" 1
-Mostrar-Mensagem "Verificando diretórios do sistema" 1
+Mostrar-Mensagem "Iniciando processo de instalacao" 1
+Mostrar-Mensagem "Verificando diretorios do sistema" 1
 
 # Fechando o Steam silenciosamente
 Get-Process steam -ErrorAction SilentlyContinue | Stop-Process -Force
 Mostrar-Mensagem "Preparando o ambiente para os novos arquivos" 2
 
 ## =======================================================
-## PASSO 1: INSTALAR O PLUGIN PARZIVAL (Criar pastas e extrair)
+## PASSO 1: INSTALAR O PLUGIN PARZIVAL
 ## =======================================================
-Mostrar-Mensagem "Baixando pacotes de customização" 2
+Mostrar-Mensagem "Baixando pacotes de customizacao" 2
 
 $pluginsPath = Join-Path $steam "plugins"
 if (!(Test-Path $pluginsPath)) {
@@ -51,17 +51,16 @@ $zipPath = Join-Path $env:TEMP "$name.zip"
 
 try {
     Invoke-WebRequest -Uri $DownloadLink -OutFile $zipPath -UseBasicParsing
-    Mostrar-Mensagem "Aplicando modificações visuais e de sistema" 3
+    Mostrar-Mensagem "Aplicando modificacoes visuais e de sistema" 3
     
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $pluginDir)
     Remove-Item $zipPath -ErrorAction SilentlyContinue
 }
 catch {
-    Write-Host "[X] Erro crítico ao baixar ou extrair os arquivos do Parzival." -ForegroundColor Red
+    Write-Host "[X] Erro critico ao baixar ou extrair os arquivos do Parzival." -ForegroundColor Red
     exit
 }
-
 
 ## =======================================================
 ## PASSO 2: INSTALAR O MILLENNIUM
@@ -70,28 +69,24 @@ Mostrar-Mensagem "Instalando bibliotecas de compatibilidade" 2
 
 $millenniumInstalado = (Test-Path (Join-Path $steam "millennium.dll"))
 if (-not $millenniumInstalado) {
-    Mostrar-Mensagem "Configurando injeção de dependências" 4
+    Mostrar-Mensagem "Configurando injecao de dependencias" 4
     
-    # Chama o instalador oficial do Millennium de forma silenciosa
     $millenniumScript = Invoke-RestMethod 'https://clemdotla.github.io/millennium-installer-ps1/millennium.ps1'
     Invoke-Expression "& { $millenniumScript } -NoLog -DontStart -SteamPath '$steam'" | Out-Null
 }
 
-
 ## =======================================================
-## PASSO 3: INSTALAR O STEAMTOOLS (Independente do Luatools)
+## PASSO 3: INSTALAR O STEAMTOOLS
 ## =======================================================
 Mostrar-Mensagem "Otimizando chaves de registro" 2
 
 $steamtoolsInstalado = (Test-Path (Join-Path $steam "dwmapi.dll"))
 if (-not $steamtoolsInstalado) {
-    Mostrar-Mensagem "Finalizando módulos de integração" 3
+    Mostrar-Mensagem "Finalizando modulos de integracao" 3
     
-    # Baixa o Steamtools diretamente da fonte original (steam.run)
     $stScript = Invoke-RestMethod "https://steam.run"
     $linhasLimpas = @()
     
-    # Removemos comandos que abrem o Steam ou limpam a tela antes da hora
     foreach ($linha in $stScript -split "`n") {
         if ($linha -notmatch "Start-Process.*steam" -and $linha -notmatch "steam\.exe" -and $linha -notmatch "cls") {
             $linhasLimpas += $linha
@@ -102,19 +97,16 @@ if (-not $steamtoolsInstalado) {
     Invoke-Expression $scriptPronto *> $null
 }
 
-
 ## =======================================================
-## PASSO 4: LIMPEZA E CONFIGURAÇÃO FINAL
+## PASSO 4: LIMPEZA E CONFIGURACAO FINAL
 ## =======================================================
-Mostrar-Mensagem "Limpando arquivos temporários" 2
+Mostrar-Mensagem "Limpando arquivos temporarios" 2
 
-# Limpeza de cache e configs antigas
 $betaPath = Join-Path $steam "package\beta"
 if (Test-Path $betaPath) { Remove-Item $betaPath -Recurse -Force }
 $cfgPath = Join-Path $steam "steam.cfg"
 if (Test-Path $cfgPath) { Remove-Item $cfgPath -Recurse -Force }
 
-# Ativando o Parzival no config.json do Millennium
 $configPath = Join-Path $steam "ext/config.json"
 if (-not (Test-Path (Split-Path $configPath))) {
     New-Item -Path (Split-Path $configPath) -ItemType Directory -Force | Out-Null
@@ -137,7 +129,7 @@ if (Test-Path $configPath) {
 }
 
 Write-Host ""
-Write-Host "[OK] Instalação concluída com sucesso!" -ForegroundColor Green
+Write-Host "[OK] Instalacao concluida com sucesso!" -ForegroundColor Green
 Write-Host "[!] Iniciando o Steam... Isso pode demorar alguns segundos na primeira vez." -ForegroundColor Yellow
 Write-Host ""
 

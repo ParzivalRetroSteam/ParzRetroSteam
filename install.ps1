@@ -1,5 +1,5 @@
 param(
-    [string]$DownloadLink = "https://SEU-LINK-DA-VERCEL-AQUI.vercel.app/parzivalretrosteam.zip"
+    [string]$DownloadLink = "https://parz-retro-steam.vercel.app/parzivalretrosteam.zip"
 )
 
 ## --- CONFIGURAÇÕES INICIAIS ---

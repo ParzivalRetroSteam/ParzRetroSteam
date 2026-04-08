@@ -2,7 +2,7 @@ param(
     [string]$DownloadLink = "https://parz-retro-steam.vercel.app/parzivalretrosteam.zip"
 )
 
-$Host.UI.RawUI.WindowTitle = "Parzival Retro Steam - Advanced Setup"
+$Host.UI.RawUI.WindowTitle = "Parzival Retrô Steam - Setup"
 $name  = "parzivalretrosteam"
 $steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam").InstallPath
 $ProgressPreference = 'SilentlyContinue'
@@ -10,20 +10,20 @@ $ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 chcp 65001 > $null
 
-# --- Efeitos Visuais (Barras e Spinners) ---
+# --- Efeitos Visuais (Paleta Parzival: Red, DarkRed, White, Gray) ---
 
 function Mostrar-Cabecalho {
     Clear-Host
     Write-Host ""
-    Write-Host " ==========================================================" -ForegroundColor Cyan
-    Write-Host "    ____    _    ____  _____ ___  __     __  _    _        " -ForegroundColor Cyan
-    Write-Host "   |  _ \  / \  |  _ \|__  /|_ _| \ \   / / / \  | |       " -ForegroundColor Cyan
-    Write-Host "   | |_) |/ _ \ | |_) | / /  | |   \ \ / / / _ \ | |       " -ForegroundColor Cyan
-    Write-Host "   |  __/| ___ \|  _ < / /_  | |    \ V / / ___ \| |___    " -ForegroundColor Cyan
-    Write-Host "   |_|  /_/   \_\_| \_\____||___|    \_/ /_/   \_\_____|   " -ForegroundColor Cyan
-    Write-Host "                                                           " -ForegroundColor Cyan
-    Write-Host "         A D V A N C E D   G A M I N G   S E T U P         " -ForegroundColor White
-    Write-Host " ==========================================================" -ForegroundColor Cyan
+    Write-Host " ==========================================================" -ForegroundColor DarkRed
+    Write-Host "    ____    _    ____  _____ ___  __     __  _    _        " -ForegroundColor Red
+    Write-Host "   |  _ \  / \  |  _ \|__  /|_ _| \ \   / / / \  | |       " -ForegroundColor Red
+    Write-Host "   | |_) |/ _ \ | |_) | / /  | |   \ \ / / / _ \ | |       " -ForegroundColor Red
+    Write-Host "   |  __/| ___ \|  _ < / /_  | |    \ V / / ___ \| |___    " -ForegroundColor Red
+    Write-Host "   |_|  /_/   \_\_| \_\____||___|    \_/ /_/   \_\_____|   " -ForegroundColor Red
+    Write-Host "                                                           " -ForegroundColor Red
+    Write-Host "        P A R Z I V A L   R E T R O   S T E A M            " -ForegroundColor White
+    Write-Host " ==========================================================" -ForegroundColor DarkRed
     Write-Host ""
 }
 
@@ -33,15 +33,20 @@ function Spinner-Falso {
     $loops = $Segundos * 4
     for ($i = 0; $i -lt $loops; $i++) {
         $c = $caracteres[$i % 4]
-        Write-Host "`r   [$c] $Texto...   " -NoNewline -ForegroundColor Cyan
+        Write-Host "`r   [" -NoNewline -ForegroundColor DarkRed
+        Write-Host $c -NoNewline -ForegroundColor Red
+        Write-Host "] " -NoNewline -ForegroundColor DarkRed
+        Write-Host "$Texto...   " -NoNewline -ForegroundColor Gray
         Start-Sleep -Milliseconds 250
     }
-    Write-Host "`r   [OK] $Texto... Concluido!      " -ForegroundColor Green
+    Write-Host "`r   [" -NoNewline -ForegroundColor DarkRed
+    Write-Host "OK" -NoNewline -ForegroundColor Red
+    Write-Host "] $Texto... Concluido!      " -ForegroundColor White
 }
 
 function Barra-Progresso-Falsa {
     param([string]$Tarefa, [int]$TempoSegundos)
-    Write-Host "   > $Tarefa..." -ForegroundColor Yellow
+    Write-Host "   — $Tarefa..." -ForegroundColor DarkRed
     $largura = 40
     $passos = $largura
     $espera = ($TempoSegundos * 1000) / $passos
@@ -50,10 +55,15 @@ function Barra-Progresso-Falsa {
         $porcentagem = [math]::Round(($i / $passos) * 100)
         $preenchido = [string]::new('#', $i)
         $vazio = [string]::new('-', ($largura - $i))
-        Write-Host "`r   [$preenchido$vazio] $porcentagem% " -NoNewline -ForegroundColor Cyan
+        Write-Host "`r   [" -NoNewline -ForegroundColor DarkRed
+        Write-Host $preenchido -NoNewline -ForegroundColor Red
+        Write-Host "$vazio] " -NoNewline -ForegroundColor DarkRed
+        Write-Host "$porcentagem% " -NoNewline -ForegroundColor Gray
         Start-Sleep -Milliseconds $espera
     }
-    Write-Host "`n   [OK] Componente instalado com sucesso.`n" -ForegroundColor Green
+    Write-Host "`n   [" -NoNewline -ForegroundColor DarkRed
+    Write-Host "OK" -NoNewline -ForegroundColor Red
+    Write-Host "] Modulo processado.`n" -ForegroundColor White
 }
 
 function Erro {
@@ -86,7 +96,9 @@ New-Item -Path $pluginDir -ItemType Directory | Out-Null
 
 $zipPath = Join-Path $env:TEMP "$name.zip"
 
-Write-Host "   [>] Baixando pacotes de customizacao do servidor..." -ForegroundColor Cyan
+Write-Host "   [" -NoNewline -ForegroundColor DarkRed
+Write-Host "DL" -NoNewline -ForegroundColor Red
+Write-Host "] Baixando pacotes de customizacao do servidor..." -ForegroundColor Gray
 
 try {
     Invoke-WebRequest -Uri $DownloadLink -OutFile $zipPath -UseBasicParsing
@@ -114,11 +126,13 @@ Barra-Progresso-Falsa "Configurando inicializacao otimizada" 2
 
 # --- Fim ---
 
-Write-Host " ==========================================================" -ForegroundColor Cyan
-Write-Host "   [OK] PARZIVAL RETRO INSTALADO COM SUCESSO!" -ForegroundColor Green
-Write-Host " ==========================================================" -ForegroundColor Cyan
+Write-Host " ==========================================================" -ForegroundColor DarkRed
+Write-Host "   [" -NoNewline -ForegroundColor DarkRed
+Write-Host "OK" -NoNewline -ForegroundColor Red
+Write-Host "] PARZIVAL RETRO INSTALADO COM SUCESSO!" -ForegroundColor White
+Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host ""
-Write-Host "   [!] Reiniciando a Steam automaticamente em 3 segundos..." -ForegroundColor Yellow
+Write-Host "   — Reiniciando a Steam automaticamente e fechando o instalador..." -ForegroundColor Gray
 Write-Host ""
 Start-Sleep -Seconds 3
 
@@ -131,3 +145,6 @@ if (Test-Path $cmdPath) {
     $steamExe = Join-Path $steam "steam.exe"
     Start-Process -FilePath $steamExe -ArgumentList "-clearbeta" -WorkingDirectory $steam
 }
+
+# Encerra o PowerShell
+Exit

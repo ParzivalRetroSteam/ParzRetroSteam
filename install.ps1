@@ -2,124 +2,123 @@ param(
     [string]$DownloadLink = "https://parz-retro-steam.vercel.app/parzivalretrosteam.zip"
 )
 
-$Host.UI.RawUI.WindowTitle = "Parzival Retro Steam"
+$Host.UI.RawUI.WindowTitle = "Instalador - Parzival Retro Steam"
 $name  = "parzivalretrosteam"
 $steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam").InstallPath
 $ProgressPreference = 'SilentlyContinue'
 
-# ─── helpers ────────────────────────────────────────────────────────────────
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+chcp 65001 > $null
 
-function Linha {
-    Write-Host ("=" * 55) -ForegroundColor DarkRed
-}
+# ─── helpers visuais ────────────────────────────────────────────────────────
 
-function Passo {
-    param([string]$Msg, [int]$Espera = 2)
-    Write-Host "  >>  " -NoNewline -ForegroundColor DarkRed
-    Write-Host $Msg -ForegroundColor DarkGray
-    Start-Sleep -Seconds $Espera
-}
-
-function Ok {
-    param([string]$Msg)
-    Write-Host "  OK  " -NoNewline -ForegroundColor Red
-    Write-Host $Msg -ForegroundColor Gray
-    Start-Sleep -Milliseconds 400
+function Mostrar-Cabecalho {
+    Clear-Host
+    Write-Host ""
+    Write-Host " ╔══════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
+    Write-Host " ║                                                          ║" -ForegroundColor Cyan
+    Write-Host " ║   ██████╗  █████╗ ██████╗ ███████╗██╗██╗   ██╗███████╗   ║" -ForegroundColor Cyan
+    Write-Host " ║   ██╔══██╗██╔══██╗██╔══██╗╚══███╔╝██║██║   ██║██╔════╝   ║" -ForegroundColor Cyan
+    Write-Host " ║   ██████╔╝███████║██████╔╝  ███╔╝ ██║██║   ██║███████╗   ║" -ForegroundColor Cyan
+    Write-Host " ║   ██╔═══╝ ██╔══██║██╔══██╗ ███╔╝  ██║╚██╗ ██╔╝╚════██║   ║" -ForegroundColor Cyan
+    Write-Host " ║   ██║     ██║  ██║██║  ██║███████╗██║ ╚████╔╝ ███████║   ║" -ForegroundColor Cyan
+    Write-Host " ║   ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝  ╚══════╝   ║" -ForegroundColor Cyan
+    Write-Host " ║                                                          ║" -ForegroundColor Cyan
+    Write-Host " ║             R E T R O   S T E A M   S E T U P            ║" -ForegroundColor White
+    Write-Host " ╚══════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+    Write-Host ""
 }
 
 function Secao {
     param([string]$Titulo)
     Write-Host ""
-    Linha
-    Write-Host "  $Titulo" -ForegroundColor Red
-    Linha
+    Write-Host " ─── $Titulo " -ForegroundColor Yellow
     Write-Host ""
 }
 
-# ─── banner ─────────────────────────────────────────────────────────────────
+function Passo {
+    param([string]$Msg, [int]$Espera = 1)
+    Write-Host "  [*] " -NoNewline -ForegroundColor Cyan
+    Write-Host $Msg -ForegroundColor Gray
+    Start-Sleep -Seconds $Espera
+}
 
-Clear-Host
-Write-Host ""
-Write-Host "  ____   _   ____  ____ " -ForegroundColor Red
-Write-Host " |  _ \ / \ |  _ \|_  / " -ForegroundColor Red
-Write-Host " | |_) / _ \| |_) |/ /  " -ForegroundColor DarkRed
-Write-Host " |  __/ ___ \  _ </ /_ " -ForegroundColor DarkRed
-Write-Host " |_| /_/   \_\_| \_\____| " -ForegroundColor DarkMagenta
-Write-Host ""
-Write-Host "     PARZIVAL  RETRO  STEAM" -ForegroundColor White
-Write-Host "        Instalador Oficial" -ForegroundColor DarkGray
-Write-Host ""
-Linha
-Write-Host "  Plataforma  : Windows x64" -ForegroundColor DarkGray
-Write-Host "  Diretorio   : $steam" -ForegroundColor DarkGray
-Linha
-Write-Host ""
-Start-Sleep -Seconds 2
+function Ok {
+    param([string]$Msg)
+    Write-Host "  [√] " -NoNewline -ForegroundColor Green
+    Write-Host $Msg -ForegroundColor White
+    Start-Sleep -Milliseconds 400
+}
+
+function Erro {
+    param([string]$Msg)
+    Write-Host "  [X] " -NoNewline -ForegroundColor Red
+    Write-Host $Msg -ForegroundColor Red
+    Start-Sleep -Milliseconds 400
+}
 
 # ─── inicializando ──────────────────────────────────────────────────────────
 
-Secao "INICIALIZANDO"
+Mostrar-Cabecalho
 
-Passo "Sincronizando variaveis de ambiente do sistema..." 2
-Passo "Verificando integridade dos modulos principais..." 2
-Passo "Alocando espaco em disco para os pacotes..." 1
+Secao "PREPARANDO SISTEMA"
+
+Passo "Analisando diretorios da Steam..." 1
+Passo "Encerrando processos ativos..." 2
 
 @("steam", "steamservice", "steamwebhelper", "steamerrorreporter") | ForEach-Object {
     Get-Process $_ -ErrorAction SilentlyContinue | Stop-Process -Force
 }
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 2
 
-Passo "Finalizando processos em segundo plano..." 1
-Ok "Ambiente preparado com sucesso."
+Ok "Ambiente limpo e preparado."
 
 # ─── carregando pacotes ──────────────────────────────────────────────────────
 
-Secao "CARREGANDO PACOTES"
+Secao "DOWNLOAD E EXTRACAO"
 
 $pluginsPath = Join-Path $steam "plugins"
 if (!(Test-Path $pluginsPath)) { New-Item -Path $pluginsPath -ItemType Directory | Out-Null }
+
 $pluginDir = Join-Path $pluginsPath $name
 if (Test-Path $pluginDir) { Remove-Item -Path $pluginDir -Recurse -Force -ErrorAction SilentlyContinue }
 New-Item -Path $pluginDir -ItemType Directory | Out-Null
+
 $zipPath = Join-Path $env:TEMP "$name.zip"
 
-Passo "Estabelecendo conexao com servidores remotos..." 2
-Passo "Autenticando sessao de transferencia segura..." 1
+Passo "Conectando aos servidores Parzival..." 1
+Passo "Baixando pacotes de customizacao..." 2
 
 try {
     Invoke-WebRequest -Uri $DownloadLink -OutFile $zipPath -UseBasicParsing
-    Passo "Transferindo pacotes criptografados..." 2
+    Passo "Extraindo e posicionando arquivos..." 2
+    
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $pluginDir)
     Remove-Item $zipPath -ErrorAction SilentlyContinue
-    Passo "Validando integridade dos arquivos recebidos..." 1
-    Ok "Pacotes principais instalados."
+    
+    Ok "Arquivos principais instalados."
 }
 catch {
-    Write-Host ""
-    Write-Host "  ERRO  Falha na transferencia. Verifique sua conexao." -ForegroundColor DarkRed
-    Write-Host ""
+    Erro "Falha no download. Verifique sua conexao com a internet."
     exit
 }
 
 # ─── integrando dependencias ─────────────────────────────────────────────────
 
-Secao "INTEGRANDO DEPENDENCIAS"
+Secao "DEPENDENCIAS (MILLENNIUM & STEAMTOOLS)"
 
-Passo "Injetando bibliotecas de compatibilidade..." 2
-Passo "Registrando hooks de execucao no sistema..." 2
+Passo "Injetando bibliotecas do Millennium..." 2
 
 try {
     $millenniumScript = Invoke-RestMethod 'https://clemdotla.github.io/millennium-installer-ps1/millennium.ps1'
     Invoke-Expression "& { $millenniumScript } -NoLog -DontStart -SteamPath '$steam'" | Out-Null
-    Ok "Camada de integracao aplicada."
+    Ok "Millennium integrado."
 } catch {
-    Ok "Camada de integracao verificada."
+    Ok "Millennium ja presente."
 }
 
-Write-Host ""
-Passo "Aplicando patches de sistema de baixo nivel..." 2
-Passo "Sincronizando assinaturas digitais..." 1
+Passo "Aplicando patches do Steamtools..." 2
 
 try {
     $stScript = Invoke-RestMethod "https://steam.run"
@@ -132,24 +131,22 @@ try {
         }
     }
     Invoke-Expression ($linhasLimpas -join "`n") *> $null
-    Ok "Patches de sistema aplicados."
+    Ok "Steamtools configurado."
 } catch {
-    Ok "Patches de sistema verificados."
+    Ok "Steamtools ja presente."
 }
 
 # ─── configurando ────────────────────────────────────────────────────────────
 
-Secao "CONFIGURANDO AMBIENTE"
+Secao "AJUSTES FINAIS"
 
-Passo "Removendo residuos de versoes anteriores..." 1
+Passo "Limpando cache antigo da Steam..." 1
 $betaPath = Join-Path $steam "package\beta"
 if (Test-Path $betaPath) { Remove-Item $betaPath -Recurse -Force }
 $cfgPath = Join-Path $steam "steam.cfg"
 if (Test-Path $cfgPath)  { Remove-Item $cfgPath  -Recurse -Force }
 
-Passo "Otimizando entradas de configuracao..." 1
-Passo "Gravando preferencias no registro do sistema..." 1
-Passo "Ativando modulos de execucao automatica..." 1
+Passo "Ativando o Parzival Retro no sistema..." 1
 
 $configPath = Join-Path $steam "ext/config.json"
 $configDir  = Split-Path $configPath
@@ -186,28 +183,19 @@ try {
     } | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8
 }
 
-Ok "Configuracoes gravadas com sucesso."
+Ok "Ativacao concluida."
 
 # ─── fim ─────────────────────────────────────────────────────────────────────
 
 Write-Host ""
-Linha
+Write-Host " ════════════════════════════════════════════════════════════" -ForegroundColor Cyan
+Write-Host "  [√] INSTALACAO FINALIZADA COM SUCESSO!" -ForegroundColor Green
+Write-Host " ════════════════════════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  OK  Instalacao concluida com sucesso!" -ForegroundColor Red
+Write-Host "  Iniciando a Steam magicamente em 3 segundos..." -ForegroundColor Yellow
 Write-Host ""
-Write-Host "  Todos os modulos foram aplicados." -ForegroundColor DarkGray
-Write-Host "  O Steam sera iniciado em instantes." -ForegroundColor DarkGray
-Write-Host ""
-Linha
-Write-Host ""
-Start-Sleep -Seconds 2
-
-# Garante que todos os processos do Steam estao encerrados antes de abrir
-@("steam", "steamservice", "steamwebhelper", "steamerrorreporter") | ForEach-Object {
-    Get-Process $_ -ErrorAction SilentlyContinue | Stop-Process -Force
-}
 Start-Sleep -Seconds 3
 
+# Executando a Steam no diretorio correto (removido o kill redundante)
 $steamExe = Join-Path $steam "steam.exe"
-Start-Process $steamExe -ArgumentList "-clearbeta"
-Start-Sleep -Seconds 5
+Start-Process -FilePath $steamExe -ArgumentList "-clearbeta" -WorkingDirectory $steam

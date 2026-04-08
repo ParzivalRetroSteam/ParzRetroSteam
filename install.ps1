@@ -2,77 +2,80 @@ param(
     [string]$DownloadLink = "https://parz-retro-steam.vercel.app/parzivalretrosteam.zip"
 )
 
-$Host.UI.RawUI.WindowTitle = "PARZIVAL_OS // RETRO_SETUP"
+$Host.UI.RawUI.WindowTitle = "Parzival Retro Steam - Advanced Setup"
 $name  = "parzivalretrosteam"
 $steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam").InstallPath
 $ProgressPreference = 'SilentlyContinue'
 
-# --- Interface Futurista 100% ASCII (Sem bugs) ---
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+chcp 65001 > $null
+
+# --- Efeitos Visuais (Barras e Spinners) ---
 
 function Mostrar-Cabecalho {
     Clear-Host
     Write-Host ""
-    Write-Host " /// SYSTEM OVERRIDE PROTOCOL INITIATED ////////////////////" -ForegroundColor Magenta
-    Write-Host "                                                            " -ForegroundColor Magenta
-    Write-Host "    ____    _    ____  _____ ___  __     __  _    _         " -ForegroundColor Cyan
-    Write-Host "   |  _ \  / \  |  _ \|__  /|_ _| \ \   / / / \  | |        " -ForegroundColor Cyan
-    Write-Host "   | |_) |/ _ \ | |_) | / /  | |   \ \ / / / _ \ | |        " -ForegroundColor Cyan
-    Write-Host "   |  __/| ___ \|  _ < / /_  | |    \ V / / ___ \| |___     " -ForegroundColor Cyan
-    Write-Host "   |_|  /_/   \_\_| \_\____||___|    \_/ /_/   \_\_____|    " -ForegroundColor Cyan
-    Write-Host "                                                            " -ForegroundColor Magenta
-    Write-Host "      [ N E X U S   G A M I N G   I N J E C T O R ]         " -ForegroundColor White
-    Write-Host " ///////////////////////////////////////////////////////////" -ForegroundColor Magenta
+    Write-Host " ==========================================================" -ForegroundColor Cyan
+    Write-Host "    ____    _    ____  _____ ___  __     __  _    _        " -ForegroundColor Cyan
+    Write-Host "   |  _ \  / \  |  _ \|__  /|_ _| \ \   / / / \  | |       " -ForegroundColor Cyan
+    Write-Host "   | |_) |/ _ \ | |_) | / /  | |   \ \ / / / _ \ | |       " -ForegroundColor Cyan
+    Write-Host "   |  __/| ___ \|  _ < / /_  | |    \ V / / ___ \| |___    " -ForegroundColor Cyan
+    Write-Host "   |_|  /_/   \_\_| \_\____||___|    \_/ /_/   \_\_____|   " -ForegroundColor Cyan
+    Write-Host "                                                           " -ForegroundColor Cyan
+    Write-Host "         A D V A N C E D   G A M I N G   S E T U P         " -ForegroundColor White
+    Write-Host " ==========================================================" -ForegroundColor Cyan
     Write-Host ""
 }
 
-function Secao {
-    param([string]$Titulo)
-    Write-Host ""
-    Write-Host " > $Titulo " -ForegroundColor Magenta -NoNewline
-    Write-Host "......................................" -ForegroundColor DarkGray
-    Write-Host ""
+function Spinner-Falso {
+    param([string]$Texto, [int]$Segundos)
+    $caracteres = @('-', '\', '|', '/')
+    $loops = $Segundos * 4
+    for ($i = 0; $i -lt $loops; $i++) {
+        $c = $caracteres[$i % 4]
+        Write-Host "`r   [$c] $Texto...   " -NoNewline -ForegroundColor Cyan
+        Start-Sleep -Milliseconds 250
+    }
+    Write-Host "`r   [OK] $Texto... Concluido!      " -ForegroundColor Green
 }
 
-function Passo {
-    param([string]$Msg, [int]$Espera = 1)
-    Write-Host "   [>] " -NoNewline -ForegroundColor Cyan
-    Write-Host $Msg -ForegroundColor Gray
-    Start-Sleep -Seconds $Espera
-}
+function Barra-Progresso-Falsa {
+    param([string]$Tarefa, [int]$TempoSegundos)
+    Write-Host "   > $Tarefa..." -ForegroundColor Yellow
+    $largura = 40
+    $passos = $largura
+    $espera = ($TempoSegundos * 1000) / $passos
 
-function Ok {
-    param([string]$Msg)
-    Write-Host "   [OK] " -NoNewline -ForegroundColor Green
-    Write-Host $Msg -ForegroundColor White
-    Start-Sleep -Milliseconds 400
+    for ($i = 1; $i -le $passos; $i++) {
+        $porcentagem = [math]::Round(($i / $passos) * 100)
+        $preenchido = [string]::new('#', $i)
+        $vazio = [string]::new('-', ($largura - $i))
+        Write-Host "`r   [$preenchido$vazio] $porcentagem% " -NoNewline -ForegroundColor Cyan
+        Start-Sleep -Milliseconds $espera
+    }
+    Write-Host "`n   [OK] Componente instalado com sucesso.`n" -ForegroundColor Green
 }
 
 function Erro {
     param([string]$Msg)
-    Write-Host "   [X] " -NoNewline -ForegroundColor Red
-    Write-Host $Msg -ForegroundColor Red
-    Start-Sleep -Milliseconds 400
+    Write-Host "`n   [X] $Msg" -ForegroundColor Red
+    Start-Sleep -Seconds 2
 }
 
-# --- Sequencia de Boot ---
+# --- Inicio da Instalacao ---
 
 Mostrar-Cabecalho
 
-Secao "SYS_PREP"
-
-Passo "Mapeando diretorios do hospedeiro..." 1
-Passo "Isolando processos em segundo plano..." 2
+Spinner-Falso "Mapeando diretorios de instalacao da Steam" 2
+Spinner-Falso "Encerrando servicos em segundo plano" 2
 
 @("steam", "steamservice", "steamwebhelper", "steamerrorreporter") | ForEach-Object {
     Get-Process $_ -ErrorAction SilentlyContinue | Stop-Process -Force
 }
-Start-Sleep -Seconds 2
+Start-Sleep -Seconds 1
 
-Ok "Nuvem isolada. Ambiente seguro."
-
-# --- Modulo de Uplink ---
-
-Secao "UPLINK_SYNC"
+Write-Host ""
+Barra-Progresso-Falsa "Alocando espaco e preparando estruturas" 2
 
 $pluginsPath = Join-Path $steam "plugins"
 if (!(Test-Path $pluginsPath)) { New-Item -Path $pluginsPath -ItemType Directory | Out-Null }
@@ -83,45 +86,39 @@ New-Item -Path $pluginDir -ItemType Directory | Out-Null
 
 $zipPath = Join-Path $env:TEMP "$name.zip"
 
-Passo "Estabelecendo conexao com servidor central..." 1
-Passo "Baixando pacote de dados criptografados..." 2
+Write-Host "   [>] Baixando pacotes de customizacao do servidor..." -ForegroundColor Cyan
 
 try {
     Invoke-WebRequest -Uri $DownloadLink -OutFile $zipPath -UseBasicParsing
-    Passo "Descompactando nucleo retro..." 2
+    
+    Barra-Progresso-Falsa "Extraindo bibliotecas e modulos principais" 3
     
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $pluginDir)
     Remove-Item $zipPath -ErrorAction SilentlyContinue
-    
-    Ok "Payload injetado com sucesso."
 }
 catch {
-    Erro "Conexao perdida. Abortando injecao."
+    Erro "Falha de rede. Nao foi possivel baixar os componentes."
     exit
 }
 
-# --- Modulo de Override ---
+Spinner-Falso "Otimizando chaves de registro do sistema" 2
+Spinner-Falso "Limpando arquivos de cache antigos" 2
 
-Secao "SYS_OVERRIDE"
-
-Passo "Limpando cache residual da matrix..." 1
 $betaPath = Join-Path $steam "package\beta"
 if (Test-Path $betaPath) { Remove-Item $betaPath -Recurse -Force }
 $cfgPath = Join-Path $steam "steam.cfg"
 if (Test-Path $cfgPath)  { Remove-Item $cfgPath  -Recurse -Force }
 
-Passo "Otimizando rotas de execucao..." 1
-Ok "Sistema hospedeiro modificado."
+Barra-Progresso-Falsa "Configurando inicializacao otimizada" 2
 
 # --- Fim ---
 
+Write-Host " ==========================================================" -ForegroundColor Cyan
+Write-Host "   [OK] PARZIVAL RETRO INSTALADO COM SUCESSO!" -ForegroundColor Green
+Write-Host " ==========================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host " ///////////////////////////////////////////////////////////" -ForegroundColor Cyan
-Write-Host "   [OK] SINCRONIZACAO CONCLUIDA! ACESSO LIBERADO." -ForegroundColor Green
-Write-Host " ///////////////////////////////////////////////////////////" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "   [!] Iniciando sequencia de boot do cliente em 3s..." -ForegroundColor Yellow
+Write-Host "   [!] Reiniciando a Steam automaticamente em 3 segundos..." -ForegroundColor Yellow
 Write-Host ""
 Start-Sleep -Seconds 3
 

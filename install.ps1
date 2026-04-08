@@ -7,22 +7,18 @@ $name  = "parzivalretrosteam"
 $steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam").InstallPath
 $ProgressPreference = 'SilentlyContinue'
 
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-chcp 65001 > $null
-
-# --- Interface Futurista (Cyberpunk UI) ---
+# --- Interface Futurista 100% ASCII (Sem bugs) ---
 
 function Mostrar-Cabecalho {
     Clear-Host
     Write-Host ""
     Write-Host " /// SYSTEM OVERRIDE PROTOCOL INITIATED ////////////////////" -ForegroundColor Magenta
     Write-Host "                                                            " -ForegroundColor Magenta
-    Write-Host "   ██████╗  █████╗ ██████╗ ███████╗██╗██╗   ██╗███████╗     " -ForegroundColor Cyan
-    Write-Host "   ██╔══██╗██╔══██╗██╔══██╗╚══███╔╝██║██║   ██║██╔════╝     " -ForegroundColor Cyan
-    Write-Host "   ██████╔╝███████║██████╔╝  ███╔╝ ██║██║   ██║███████╗     " -ForegroundColor Cyan
-    Write-Host "   ██╔═══╝ ██╔══██║██╔══██╗ ███╔╝  ██║╚██╗ ██╔╝╚════██║     " -ForegroundColor Cyan
-    Write-Host "   ██║     ██║  ██║██║  ██║███████╗██║ ╚████╔╝ ███████║     " -ForegroundColor Cyan
-    Write-Host "   ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝  ╚══════╝     " -ForegroundColor Cyan
+    Write-Host "    ____    _    ____  _____ ___  __     __  _    _         " -ForegroundColor Cyan
+    Write-Host "   |  _ \  / \  |  _ \|__  /|_ _| \ \   / / / \  | |        " -ForegroundColor Cyan
+    Write-Host "   | |_) |/ _ \ | |_) | / /  | |   \ \ / / / _ \ | |        " -ForegroundColor Cyan
+    Write-Host "   |  __/| ___ \|  _ < / /_  | |    \ V / / ___ \| |___     " -ForegroundColor Cyan
+    Write-Host "   |_|  /_/   \_\_| \_\____||___|    \_/ /_/   \_\_____|    " -ForegroundColor Cyan
     Write-Host "                                                            " -ForegroundColor Magenta
     Write-Host "      [ N E X U S   G A M I N G   I N J E C T O R ]         " -ForegroundColor White
     Write-Host " ///////////////////////////////////////////////////////////" -ForegroundColor Magenta
@@ -46,7 +42,7 @@ function Passo {
 
 function Ok {
     param([string]$Msg)
-    Write-Host "   [√] " -NoNewline -ForegroundColor Green
+    Write-Host "   [OK] " -NoNewline -ForegroundColor Green
     Write-Host $Msg -ForegroundColor White
     Start-Sleep -Milliseconds 400
 }
@@ -129,11 +125,11 @@ Write-Host "   [!] Iniciando sequencia de boot do cliente em 3s..." -ForegroundC
 Write-Host ""
 Start-Sleep -Seconds 3
 
-# Acionamento do arquivo .bat do Parzival Retro
+# Acionamento do arquivo .cmd do Parzival Retro em modo OCULTO
 $cmdPath = Join-Path $steam "plugins\$name\backend\restart_steam.cmd"
 
 if (Test-Path $cmdPath) {
-    Start-Process -FilePath $cmdPath -WorkingDirectory (Split-Path $cmdPath)
+    Start-Process -FilePath $cmdPath -WorkingDirectory (Split-Path $cmdPath) -WindowStyle Hidden
 } else {
     $steamExe = Join-Path $steam "steam.exe"
     Start-Process -FilePath $steamExe -ArgumentList "-clearbeta" -WorkingDirectory $steam

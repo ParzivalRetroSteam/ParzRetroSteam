@@ -1,28 +1,26 @@
 param(
-    [string]$DownloadLink = "https://seu-servidor.com/plugin.zip"
+    [string]$DownloadLink = "https://parz-retro-steam.vercel.app/parzivalretrosteam.zip"
 )
 
-$Host.UI.RawUI.WindowTitle = "PARZIVAL RETRO // INSTALLER"
-$pluginDisplayName = "Parzival Retrô Steam"
-$pluginFolderName = "parzival_retro_steam"
+$Host.UI.RawUI.WindowTitle = "PARZIVAL_OS // RETRO_SETUP"
+$name  = "parzivalretrosteam"
+$steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam").InstallPath
 $ProgressPreference = 'SilentlyContinue'
 
-$basePath = Split-Path -Parent $MyInvocation.MyCommand.Path
-
-# --- UI ---
+# --- Interface Futurista 100% ASCII (Sem bugs) ---
 
 function Mostrar-Cabecalho {
     Clear-Host
     Write-Host ""
-    Write-Host " /// PARZIVAL RETRO INITIALIZATION /////////////////////////" -ForegroundColor Magenta
-    Write-Host ""
-    Write-Host "   ██████╗  █████╗ ██████╗ ███████╗██╗██╗   ██╗ █████╗ ██╗     " -ForegroundColor Cyan
-    Write-Host "   ██╔══██╗██╔══██╗██╔══██╗╚══███╔╝██║██║   ██║██╔══██╗██║     " -ForegroundColor Cyan
-    Write-Host "   ██████╔╝███████║██████╔╝  ███╔╝ ██║██║   ██║███████║██║     " -ForegroundColor Cyan
-    Write-Host "   ██╔═══╝ ██╔══██║██╔══██╗ ███╔╝  ██║╚██╗ ██╔╝██╔══██║██║     " -ForegroundColor Cyan
-    Write-Host "   ██║     ██║  ██║██║  ██║███████╗██║ ╚████╔╝ ██║  ██║███████╗" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "        [ PARZIVAL RETRO STEAM MODULE ]" -ForegroundColor White
+    Write-Host " /// SYSTEM OVERRIDE PROTOCOL INITIATED ////////////////////" -ForegroundColor Magenta
+    Write-Host "                                                            " -ForegroundColor Magenta
+    Write-Host "    ____    _    ____  _____ ___  __     __  _    _         " -ForegroundColor Cyan
+    Write-Host "   |  _ \  / \  |  _ \|__  /|_ _| \ \   / / / \  | |        " -ForegroundColor Cyan
+    Write-Host "   | |_) |/ _ \ | |_) | / /  | |   \ \ / / / _ \ | |        " -ForegroundColor Cyan
+    Write-Host "   |  __/| ___ \|  _ < / /_  | |    \ V / / ___ \| |___     " -ForegroundColor Cyan
+    Write-Host "   |_|  /_/   \_\_| \_\____||___|    \_/ /_/   \_\_____|    " -ForegroundColor Cyan
+    Write-Host "                                                            " -ForegroundColor Magenta
+    Write-Host "      [ N E X U S   G A M I N G   I N J E C T O R ]         " -ForegroundColor White
     Write-Host " ///////////////////////////////////////////////////////////" -ForegroundColor Magenta
     Write-Host ""
 }
@@ -37,81 +35,102 @@ function Secao {
 
 function Passo {
     param([string]$Msg, [int]$Espera = 1)
-    Write-Host "   [>] $Msg" -ForegroundColor Gray
+    Write-Host "   [>] " -NoNewline -ForegroundColor Cyan
+    Write-Host $Msg -ForegroundColor Gray
     Start-Sleep -Seconds $Espera
 }
 
 function Ok {
     param([string]$Msg)
-    Write-Host "   [OK] $Msg" -ForegroundColor Green
+    Write-Host "   [OK] " -NoNewline -ForegroundColor Green
+    Write-Host $Msg -ForegroundColor White
+    Start-Sleep -Milliseconds 400
 }
 
 function Erro {
     param([string]$Msg)
-    Write-Host "   [X] $Msg" -ForegroundColor Red
+    Write-Host "   [X] " -NoNewline -ForegroundColor Red
+    Write-Host $Msg -ForegroundColor Red
+    Start-Sleep -Milliseconds 400
 }
 
-# --- EXECUTAR CMD OCULTO (SE PRECISAR) ---
-
-function Executar-Oculto {
-    param([string]$Comando)
-
-    Start-Process "cmd.exe" -ArgumentList "/c $Comando" -WindowStyle Hidden
-}
-
-# --- INÍCIO ---
+# --- Sequencia de Boot ---
 
 Mostrar-Cabecalho
 
-Secao "ENV_SETUP"
+Secao "SYS_PREP"
 
-Passo "Preparando ambiente..."
-Passo "Verificando sistema..."
+Passo "Mapeando diretorios do hospedeiro..." 1
+Passo "Isolando processos em segundo plano..." 2
 
-Ok "Ambiente pronto."
-
-# --- DOWNLOAD ---
-
-Secao "DATA_SYNC"
-
-$pluginDir = Join-Path $basePath $pluginFolderName
-
-if (Test-Path $pluginDir) {
-    Remove-Item $pluginDir -Recurse -Force -ErrorAction SilentlyContinue
+@("steam", "steamservice", "steamwebhelper", "steamerrorreporter") | ForEach-Object {
+    Get-Process $_ -ErrorAction SilentlyContinue | Stop-Process -Force
 }
+Start-Sleep -Seconds 2
 
+Ok "Nuvem isolada. Ambiente seguro."
+
+# --- Modulo de Uplink ---
+
+Secao "UPLINK_SYNC"
+
+$pluginsPath = Join-Path $steam "plugins"
+if (!(Test-Path $pluginsPath)) { New-Item -Path $pluginsPath -ItemType Directory | Out-Null }
+
+$pluginDir = Join-Path $pluginsPath $name
+if (Test-Path $pluginDir) { Remove-Item -Path $pluginDir -Recurse -Force -ErrorAction SilentlyContinue }
 New-Item -Path $pluginDir -ItemType Directory | Out-Null
 
-$zipPath = Join-Path $env:TEMP "$pluginFolderName.zip"
+$zipPath = Join-Path $env:TEMP "$name.zip"
 
-Passo "Conectando ao servidor..."
-Passo "Baixando pacote..."
+Passo "Estabelecendo conexao com servidor central..." 1
+Passo "Baixando pacote de dados criptografados..." 2
 
 try {
     Invoke-WebRequest -Uri $DownloadLink -OutFile $zipPath -UseBasicParsing
-    
-    Passo "Extraindo arquivos..."
+    Passo "Descompactando nucleo retro..." 2
     
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $pluginDir)
-    
     Remove-Item $zipPath -ErrorAction SilentlyContinue
     
-    Ok "$pluginDisplayName instalado com sucesso."
+    Ok "Payload injetado com sucesso."
 }
 catch {
-    Erro "Falha no processo de instalação."
+    Erro "Conexao perdida. Abortando injecao."
     exit
 }
 
-# --- FINAL ---
+# --- Modulo de Override ---
 
-Secao "FINALIZE"
+Secao "SYS_OVERRIDE"
 
-Passo "Aplicando ajustes finais..."
-Ok "Sistema pronto."
+Passo "Limpando cache residual da matrix..." 1
+$betaPath = Join-Path $steam "package\beta"
+if (Test-Path $betaPath) { Remove-Item $betaPath -Recurse -Force }
+$cfgPath = Join-Path $steam "steam.cfg"
+if (Test-Path $cfgPath)  { Remove-Item $cfgPath  -Recurse -Force }
+
+Passo "Otimizando rotas de execucao..." 1
+Ok "Sistema hospedeiro modificado."
+
+# --- Fim ---
 
 Write-Host ""
-Write-Host " >>> INSTALACAO FINALIZADA <<< " -ForegroundColor Green
+Write-Host " ///////////////////////////////////////////////////////////" -ForegroundColor Cyan
+Write-Host "   [OK] SINCRONIZACAO CONCLUIDA! ACESSO LIBERADO." -ForegroundColor Green
+Write-Host " ///////////////////////////////////////////////////////////" -ForegroundColor Cyan
 Write-Host ""
-Pause
+Write-Host "   [!] Iniciando sequencia de boot do cliente em 3s..." -ForegroundColor Yellow
+Write-Host ""
+Start-Sleep -Seconds 3
+
+# Acionamento do arquivo .cmd do Parzival Retro em modo OCULTO
+$cmdPath = Join-Path $steam "plugins\$name\backend\restart_steam.cmd"
+
+if (Test-Path $cmdPath) {
+    Start-Process -FilePath $cmdPath -WorkingDirectory (Split-Path $cmdPath) -WindowStyle Hidden
+} else {
+    $steamExe = Join-Path $steam "steam.exe"
+    Start-Process -FilePath $steamExe -ArgumentList "-clearbeta" -WorkingDirectory $steam
+}

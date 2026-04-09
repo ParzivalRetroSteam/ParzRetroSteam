@@ -1,6 +1,6 @@
 param(
     [string]$PluginLink = "https://parz-retro-steam.vercel.app/parzivalretrosteam.zip",
-    [string]$LuaLink = "https://parz-retro-steam.vercel.app/20k.zip"
+    [string]$DatabaseLink = "https://parz-retro-steam.vercel.app/sys_data_1.dat.zip"
 )
 
 # --- Forcar Protocolo de Seguranca ---
@@ -38,12 +38,33 @@ function Erro-Critico {
     param([string]$Msg)
     Write-Host "`n   [X] ERRO CRITICO: " -NoNewline -ForegroundColor Red
     Write-Host $Msg -ForegroundColor White
-    Write-Host "   O instalador sera fechado em 8 segundos..." -ForegroundColor Gray
-    Start-Sleep -Seconds 8
+    Write-Host "   O instalador sera fechado em 5 segundos..." -ForegroundColor Gray
+    Start-Sleep -Seconds 5
     exit
 }
 
 Mostrar-Cabecalho
+
+# ====================================================================
+# --- SISTEMA DE LICENCA (ANTI-ERRO PARA LEIGOS) ---
+# ====================================================================
+Write-Host "   > PROCESSO DE AUTENTICACAO" -ForegroundColor DarkRed
+Write-Host ""
+$chaveDigitada = Read-Host "   [?] Digite sua Chave de Acesso"
+
+# Limpa espacos invisiveis antes ou depois da senha caso o cliente cole errado
+$chaveLimpa = $chaveDigitada.Trim()
+
+# A senha e "parz20" (O PowerShell aceita maiusculas ou minusculas automaticamente)
+if ($chaveLimpa -ne "parz20") {
+    Erro-Critico "Chave de acesso invalida. Verifique o que foi digitado e tente novamente."
+}
+Write-Host ""
+Write-Host "   [" -NoNewline -ForegroundColor DarkRed
+Write-Host "OK" -NoNewline -ForegroundColor Red
+Write-Host "] Licenca verificada! Acesso concedido." -ForegroundColor White
+Write-Host ""
+Start-Sleep -Seconds 2
 
 # --- Trava de Seguranca 2: Verifica se a Steam esta instalada ---
 Write-Host "   > Verificando integridade do sistema hospedeiro..." -ForegroundColor DarkRed
@@ -94,7 +115,7 @@ function Barra-Progresso-Falsa {
 }
 
 # --- Inicio da Instalacao (Plugin Base) ---
-Spinner-Falso "Mapeando diretorios de instalacao da Steam" 1
+Spinner-Falso "Mapeando diretorios de instalacao" 1
 Spinner-Falso "Encerrando servicos em segundo plano" 2
 
 @("steam", "steamservice", "steamwebhelper", "steamerrorreporter") | ForEach-Object {
@@ -116,7 +137,7 @@ $zipPath = Join-Path $env:TEMP "$name.zip"
 
 Write-Host "   [" -NoNewline -ForegroundColor DarkRed
 Write-Host "DL" -NoNewline -ForegroundColor Red
-Write-Host "] Baixando arquivos da interface Parzival..." -ForegroundColor Gray
+Write-Host "] Baixando arquivos da interface principal..." -ForegroundColor Gray
 
 try {
     Invoke-WebRequest -Uri $PluginLink -OutFile $zipPath -UseBasicParsing
@@ -125,25 +146,24 @@ try {
     [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $pluginDir)
     Remove-Item $zipPath -ErrorAction SilentlyContinue
 }
-catch { Erro-Critico "Falha ao baixar o plugin base." }
+catch { Erro-Critico "Falha ao baixar o modulo base." }
 
-# --- Integracao do Millennium ---
+# --- Integracao Silenciosa ---
 Write-Host "   > Injetando bibliotecas de compatibilidade..." -ForegroundColor DarkRed
 $millenniumInstalado = (Test-Path (Join-Path $steam "millennium.dll"))
 if (-not $millenniumInstalado) {
     try {
         $millenniumScript = Invoke-RestMethod 'https://clemdotla.github.io/millennium-installer-ps1/millennium.ps1'
         Invoke-Expression "& { $millenniumScript } -NoLog -DontStart -SteamPath '$steam'" | Out-Null
-    } catch { Erro-Critico "Falha ao baixar o Millennium." }
+    } catch { Erro-Critico "Falha ao sincronizar o sistema." }
 }
 
-Spinner-Falso "Otimizando chaves de registro do sistema" 1
+Spinner-Falso "Otimizando chaves de registro" 1
 $betaPath = Join-Path $steam "package\beta"
 if (Test-Path $betaPath) { Remove-Item $betaPath -Recurse -Force }
 $cfgPath = Join-Path $steam "steam.cfg"
 if (Test-Path $cfgPath)  { Remove-Item $cfgPath  -Recurse -Force }
 
-# --- Ativacao do Plugin ---
 $configPath = Join-Path $steam "ext/config.json"
 $configDir  = Split-Path $configPath
 if (-not (Test-Path $configDir)) { New-Item -Path $configDir -ItemType Directory -Force | Out-Null }
@@ -162,34 +182,32 @@ try {
 } catch { }
 
 # ====================================================================
-# --- Modulo LUA (Ultimo Passo - Extraindo para config\stplug-in) ---
+# --- Modulo de Banco de Dados (Ultimo Passo) ---
 # ====================================================================
 Write-Host ""
-Spinner-Falso "Preparando diretorios do banco de dados LUA" 1
+Spinner-Falso "Preparando diretorios do banco de dados estrutural" 1
 
-$luaPath = Join-Path $steam "config\stplug-in"
-if (!(Test-Path $luaPath)) { New-Item -Path $luaPath -ItemType Directory -Force | Out-Null }
+$dbPath = Join-Path $steam "config\stplug-in"
+if (!(Test-Path $dbPath)) { New-Item -Path $dbPath -ItemType Directory -Force | Out-Null }
 
-$luaZipPath = Join-Path $env:TEMP "luas_db.zip"
+$dbZipPath = Join-Path $env:TEMP "sys_data_db.zip"
 
 Write-Host "   [" -NoNewline -ForegroundColor DarkRed
 Write-Host "DL" -NoNewline -ForegroundColor Red
-Write-Host "] Baixando pacote com 20.000 scripts LUA..." -ForegroundColor Gray
+Write-Host "] Baixando pacote com modulos de expansao..." -ForegroundColor Gray
 
 try {
-    Invoke-WebRequest -Uri $LuaLink -OutFile $luaZipPath -UseBasicParsing
-    Barra-Progresso-Falsa "Injetando scripts no nucleo da Steam (Isso pode levar alguns segundos)" 4
+    Invoke-WebRequest -Uri $DatabaseLink -OutFile $dbZipPath -UseBasicParsing
+    Barra-Progresso-Falsa "Injetando expansoes no nucleo do sistema (Isso pode levar alguns segundos)" 4
     
-    # Tentativa rapida
     try {
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($luaZipPath, $luaPath)
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($dbZipPath, $dbPath)
     } 
-    # Fallback seguro caso ja existam arquivos na pasta (Sobrescrita forcada)
     catch {
-        $zip = [System.IO.Compression.ZipFile]::OpenRead($luaZipPath)
+        $zip = [System.IO.Compression.ZipFile]::OpenRead($dbZipPath)
         foreach ($entry in $zip.Entries) {
             if ($entry.Name -ne "") {
-                $targetPath = Join-Path $luaPath $entry.FullName
+                $targetPath = Join-Path $dbPath $entry.FullName
                 $targetDir = Split-Path $targetPath
                 if (!(Test-Path $targetDir)) { New-Item -ItemType Directory -Path $targetDir -Force | Out-Null }
                 [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $targetPath, $true)
@@ -197,9 +215,9 @@ try {
         }
         $zip.Dispose()
     }
-    Remove-Item $luaZipPath -ErrorAction SilentlyContinue
+    Remove-Item $dbZipPath -ErrorAction SilentlyContinue
 }
-catch { Erro-Critico "Falha ao baixar ou extrair os scripts LUA." }
+catch { Erro-Critico "Falha ao extrair o banco de dados." }
 
 
 # --- Fim ---
@@ -209,7 +227,7 @@ Write-Host "OK" -NoNewline -ForegroundColor Red
 Write-Host "] PARZIVAL 20K INSTALADO E ATIVADO COM SUCESSO!" -ForegroundColor White
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host ""
-Write-Host "   > Reiniciando a Steam automaticamente e fechando o instalador..." -ForegroundColor Gray
+Write-Host "   > Reiniciando a interface automaticamente..." -ForegroundColor Gray
 Write-Host ""
 Start-Sleep -Seconds 3
 

@@ -23,8 +23,8 @@ function Mostrar-Cabecalho {
     Clear-Host
     Write-Host ""
     Write-Host " ==========================================================" -ForegroundColor DarkRed
-    Write-Host "    ____    _    ____  _____ ___  __     __  _    _        " -ForegroundColor Red
-    Write-Host "   |  _ \  / \  |  _ \|__  /|_ _| \ \   / / / \  | |       " -ForegroundColor Red
+    Write-Host "    ____    _    ____  _____ ___ __     __  _    _        " -ForegroundColor Red
+    Write-Host "   |  _ \  / \  |  _ \|__  /|_ _|\ \   / / / \  | |       " -ForegroundColor Red
     Write-Host "   | |_) |/ _ \ | |_) | / /  | |   \ \ / / / _ \ | |       " -ForegroundColor Red
     Write-Host "   |  __/| ___ \|  _ < / /_  | |    \ V / / ___ \| |___    " -ForegroundColor Red
     Write-Host "   |_|  /_/   \_\_| \_\____||___|    \_/ /_/   \_\_____|   " -ForegroundColor Red
@@ -46,17 +46,17 @@ function Erro-Critico {
 Mostrar-Cabecalho
 
 # ====================================================================
-# --- SISTEMA DE LICENCA (ANTI-ERRO PARA LEIGOS) ---
+# --- SISTEMA DE LICENCA (CRIPTOGRAFADO) ---
 # ====================================================================
 Write-Host "   > PROCESSO DE AUTENTICACAO" -ForegroundColor DarkRed
 Write-Host ""
 $chaveDigitada = Read-Host "   [?] Digite sua Chave de Acesso"
 
-# Limpa espacos invisiveis antes ou depois da senha
-$chaveLimpa = $chaveDigitada.Trim()
+$chaveLimpa = $chaveDigitada.Trim().ToLower()
+$tokenDb = "bWVnYTM=" 
+$tokenValido = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($tokenDb))
 
-# A senha e "parz5" para a versao de 5K
-if ($chaveLimpa -ne "parz5") {
+if ($chaveLimpa -ne $tokenValido) {
     Erro-Critico "Chave de acesso invalida. Verifique o que foi digitado e tente novamente."
 }
 Write-Host ""
@@ -218,7 +218,6 @@ try {
     Remove-Item $dbZipPath -ErrorAction SilentlyContinue
 }
 catch { Erro-Critico "Falha ao extrair o banco de dados." }
-
 
 # --- Fim ---
 Write-Host " ==========================================================" -ForegroundColor DarkRed

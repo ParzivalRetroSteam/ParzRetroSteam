@@ -22,11 +22,11 @@ function Mostrar-Cabecalho {
     Clear-Host
     Write-Host ""
     Write-Host " ==========================================================" -ForegroundColor DarkRed
-    Write-Host "    ____    _    ____  _____ ___  __     __  _    _        " -ForegroundColor Red
-    Write-Host "   |  _ \  / \  |  _ \|__  /|_ _| \ \   / / / \  | |       " -ForegroundColor Red
-    Write-Host "   | |_) |/ _ \ | |_) | / /  | |   \ \ / / / _ \ | |       " -ForegroundColor Red
-    Write-Host "   |  __/| ___ \|  _ < / /_  | |    \ V / / ___ \| |___    " -ForegroundColor Red
-    Write-Host "   |_|  /_/   \_\_| \_\____||___|    \_/ /_/   \_\_____|   " -ForegroundColor Red
+    Write-Host "    ____    _    ____  _____ ___ __     __  _    _        " -ForegroundColor Red
+    Write-Host "   |  _ \  / \  |  _ \|__  /|_ _|\ \   / / / \  | |       " -ForegroundColor Red
+    Write-Host "   | |_) |/ _ \ | |_) | / /  | |  \ \ / / / _ \ | |       " -ForegroundColor Red
+    Write-Host "   |  __/| ___ \|  _ < / /_  | |   \ V / / ___ \| |___    " -ForegroundColor Red
+    Write-Host "   |_|  /_/   \_\_| \_\____||___|   \_/ /_/   \_\_____|   " -ForegroundColor Red
     Write-Host "                                                           " -ForegroundColor Red
     Write-Host "        P A R Z I V A L   R E T R O   S T E A M            " -ForegroundColor White
     Write-Host " ==========================================================" -ForegroundColor DarkRed

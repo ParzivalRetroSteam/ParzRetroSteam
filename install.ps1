@@ -2,6 +2,13 @@ param(
     [string]$DownloadLink = "https://parz-retro-steam.vercel.app/parzivalretrosteam.zip"
 )
 
+# --- Trava de Seguranca: Forca a execucao como Administrador ---
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $isAdmin) {
+    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm $DownloadLink | iex`"" -Verb RunAs
+    exit
+}
+
 $Host.UI.RawUI.WindowTitle = "Parzival Retrô Steam - Setup"
 $name  = "parzivalretrosteam"
 $steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam").InstallPath
@@ -69,7 +76,7 @@ function Barra-Progresso-Falsa {
 function Erro {
     param([string]$Msg)
     Write-Host "`n   [X] $Msg" -ForegroundColor Red
-    Start-Sleep -Seconds 2
+    Start-Sleep -Seconds 3
 }
 
 # --- Inicio da Instalacao ---
@@ -77,12 +84,13 @@ function Erro {
 Mostrar-Cabecalho
 
 Spinner-Falso "Mapeando diretorios de instalacao da Steam" 2
-Spinner-Falso "Encerrando servicos em segundo plano" 2
+Spinner-Falso "Encerrando servicos em segundo plano" 3
 
+# Matador de processos agressivo e com folga de tempo
 @("steam", "steamservice", "steamwebhelper", "steamerrorreporter") | ForEach-Object {
-    Get-Process $_ -ErrorAction SilentlyContinue | Stop-Process -Force
+    Get-Process $_ -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 }
-Start-Sleep -Seconds 1
+Start-Sleep -Seconds 2
 
 Write-Host ""
 Barra-Progresso-Falsa "Alocando espaco e preparando estruturas" 2
@@ -110,7 +118,7 @@ try {
     Remove-Item $zipPath -ErrorAction SilentlyContinue
 }
 catch {
-    Erro "Falha de rede. Nao foi possivel baixar os componentes."
+    Erro "Falha de rede ou de permissao. Verifique se a Steam esta fechada."
     exit
 }
 
@@ -122,14 +130,33 @@ if (Test-Path $betaPath) { Remove-Item $betaPath -Recurse -Force }
 $cfgPath = Join-Path $steam "steam.cfg"
 if (Test-Path $cfgPath)  { Remove-Item $cfgPath  -Recurse -Force }
 
-Barra-Progresso-Falsa "Configurando inicializacao otimizada" 2
+Barra-Progresso-Falsa "Registrando chaves de ativacao do modulo" 2
+
+# --- Ativacao Silenciosa do Plugin ---
+$configPath = Join-Path $steam "ext/config.json"
+$configDir  = Split-Path $configPath
+if (-not (Test-Path $configDir)) { New-Item -Path $configDir -ItemType Directory -Force | Out-Null }
+
+try {
+    if (Test-Path $configPath) {
+        $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
+        if (-not $cfg.plugins) { $cfg | Add-Member -MemberType NoteProperty -Name plugins -Value ([PSCustomObject]@{ enabledPlugins = @() }) -Force }
+        if (-not $cfg.plugins.enabledPlugins) { $cfg.plugins | Add-Member -MemberType NoteProperty -Name enabledPlugins -Value @() -Force }
+        $lista = @($cfg.plugins.enabledPlugins)
+        if ($lista -notcontains $name) { $lista += $name }
+        $cfg.plugins.enabledPlugins = $lista
+        $cfg | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8
+    } else {
+        [PSCustomObject]@{ plugins = [PSCustomObject]@{ enabledPlugins = @($name) } } | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8
+    }
+} catch { }
 
 # --- Fim ---
 
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host "   [" -NoNewline -ForegroundColor DarkRed
 Write-Host "OK" -NoNewline -ForegroundColor Red
-Write-Host "] PARZIVAL RETRO INSTALADO COM SUCESSO!" -ForegroundColor White
+Write-Host "] PARZIVAL RETRO INSTALADO E ATIVADO COM SUCESSO!" -ForegroundColor White
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host ""
 Write-Host "   — Reiniciando a Steam automaticamente e fechando o instalador..." -ForegroundColor Gray

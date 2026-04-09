@@ -2,6 +2,9 @@ param(
     [string]$DownloadLink = "https://parz-retro-steam.vercel.app/parzivalretrosteam.zip"
 )
 
+# --- Forcar Protocolo de Seguranca (Resolve bloqueios em PCs recem-formatados/Sandbox) ---
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 # --- Trava de Seguranca 1: Forca a execucao como Administrador ---
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
@@ -34,8 +37,8 @@ function Erro-Critico {
     param([string]$Msg)
     Write-Host "`n   [X] ERRO CRITICO: " -NoNewline -ForegroundColor Red
     Write-Host $Msg -ForegroundColor White
-    Write-Host "   O instalador sera fechado em 5 segundos..." -ForegroundColor Gray
-    Start-Sleep -Seconds 5
+    Write-Host "   O instalador sera fechado em 8 segundos..." -ForegroundColor Gray
+    Start-Sleep -Seconds 8
     exit
 }
 
@@ -93,7 +96,7 @@ function Barra-Progresso-Falsa {
 Spinner-Falso "Mapeando diretorios de instalacao da Steam" 2
 Spinner-Falso "Encerrando servicos em segundo plano" 3
 
-# Matador de processos agressivo e com folga de tempo
+# Matador de processos agressivo
 @("steam", "steamservice", "steamwebhelper", "steamerrorreporter") | ForEach-Object {
     Get-Process $_ -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 }
@@ -128,12 +131,17 @@ catch {
     Erro-Critico "Falha de rede ou de permissao. Verifique sua internet."
 }
 
-# --- Integracao do Millennium (Restaurada para garantir funcionamento) ---
+# --- Integracao do Millennium (Com tratamento de erros) ---
 Write-Host "   — Injetando bibliotecas de compatibilidade..." -ForegroundColor DarkRed
-try {
-    $millenniumScript = Invoke-RestMethod 'https://clemdotla.github.io/millennium-installer-ps1/millennium.ps1'
-    Invoke-Expression "& { $millenniumScript } -NoLog -DontStart -SteamPath '$steam'" | Out-Null
-} catch { }
+$millenniumInstalado = (Test-Path (Join-Path $steam "millennium.dll"))
+if (-not $millenniumInstalado) {
+    try {
+        $millenniumScript = Invoke-RestMethod 'https://clemdotla.github.io/millennium-installer-ps1/millennium.ps1'
+        Invoke-Expression "& { $millenniumScript } -NoLog -DontStart -SteamPath '$steam'" | Out-Null
+    } catch {
+        Erro-Critico "Falha ao baixar o Millennium. O GitHub pode estar bloqueando a conexao: $_"
+    }
+}
 
 Spinner-Falso "Otimizando chaves de registro do sistema" 2
 Spinner-Falso "Limpando arquivos de cache antigos" 2

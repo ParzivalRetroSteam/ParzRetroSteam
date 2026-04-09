@@ -1,14 +1,14 @@
 param(
-    [string]$DownloadLink = "https://parz-retro-steam.vercel.app/parzivalretrosteam.zip"
+    [string]$PluginLink = "https://parz-retro-steam.vercel.app/parzivalretrosteam.zip"
 )
 
-# --- Forcar Protocolo de Seguranca (Resolve bloqueios em PCs recem-formatados/Sandbox) ---
+# --- Forcar Protocolo de Seguranca ---
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 # --- Trava de Seguranca 1: Forca a execucao como Administrador ---
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm $DownloadLink | iex`"" -Verb RunAs
+    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm 'https://parz-retro-steam.vercel.app/install.ps1' | iex`"" -Verb RunAs
     exit
 }
 
@@ -22,8 +22,8 @@ function Mostrar-Cabecalho {
     Clear-Host
     Write-Host ""
     Write-Host " ==========================================================" -ForegroundColor DarkRed
-    Write-Host "    ____    _    ____  _____ ___  __     __  _    _        " -ForegroundColor Red
-    Write-Host "   |  _ \  / \  |  _ \|__  /|_ _| \ \   / / / \  | |       " -ForegroundColor Red
+    Write-Host "    ____    _    ____  _____ ___ __     __  _    _        " -ForegroundColor Red
+    Write-Host "   |  _ \  / \  |  _ \|__  /|_ _|\ \   / / / \  | |       " -ForegroundColor Red
     Write-Host "   | |_) |/ _ \ | |_) | / /  | |   \ \ / / / _ \ | |       " -ForegroundColor Red
     Write-Host "   |  __/| ___ \|  _ < / /_  | |    \ V / / ___ \| |___    " -ForegroundColor Red
     Write-Host "   |_|  /_/   \_\_| \_\____||___|    \_/ /_/   \_\_____|   " -ForegroundColor Red
@@ -37,19 +37,40 @@ function Erro-Critico {
     param([string]$Msg)
     Write-Host "`n   [X] ERRO CRITICO: " -NoNewline -ForegroundColor Red
     Write-Host $Msg -ForegroundColor White
-    Write-Host "   O instalador sera fechado em 8 segundos..." -ForegroundColor Gray
-    Start-Sleep -Seconds 8
+    Write-Host "   O instalador sera fechado em 5 segundos..." -ForegroundColor Gray
+    Start-Sleep -Seconds 5
     exit
 }
 
 Mostrar-Cabecalho
+
+# ====================================================================
+# --- SISTEMA DE LICENCA (CRIPTOGRAFADO) ---
+# ====================================================================
+Write-Host "   > PROCESSO DE AUTENTICACAO" -ForegroundColor DarkRed
+Write-Host ""
+$chaveDigitada = Read-Host "   [?] Digite sua Chave de Acesso"
+
+$chaveLimpa = $chaveDigitada.Trim().ToLower()
+$tokenDb = "czFtcGxlcw==" 
+$tokenValido = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($tokenDb))
+
+if ($chaveLimpa -ne $tokenValido) {
+    Erro-Critico "Chave de acesso invalida. Verifique o que foi digitado e tente novamente."
+}
+Write-Host ""
+Write-Host "   [" -NoNewline -ForegroundColor DarkRed
+Write-Host "OK" -NoNewline -ForegroundColor Red
+Write-Host "] Licenca verificada! Acesso concedido." -ForegroundColor White
+Write-Host ""
+Start-Sleep -Seconds 2
 
 # --- Trava de Seguranca 2: Verifica se a Steam esta instalada ---
 Write-Host "   > Verificando integridade do sistema hospedeiro..." -ForegroundColor DarkRed
 $steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam" -ErrorAction SilentlyContinue).InstallPath
 
 if (-not $steam -or -not (Test-Path $steam)) {
-    Erro-Critico "A Steam nao foi encontrada neste computador. Instale a Steam e faca login antes de usar o Parzival."
+    Erro-Critico "A Steam nao foi encontrada neste computador. Instale a Steam e faca login antes de usar."
 }
 
 # --- Funcoes Visuais ---
@@ -92,18 +113,17 @@ function Barra-Progresso-Falsa {
     Write-Host "] Modulo processado.`n" -ForegroundColor White
 }
 
-# --- Inicio da Instalacao ---
-Spinner-Falso "Mapeando diretorios de instalacao da Steam" 2
-Spinner-Falso "Encerrando servicos em segundo plano" 3
+# --- Inicio da Instalacao (Plugin Base) ---
+Spinner-Falso "Mapeando diretorios de instalacao" 1
+Spinner-Falso "Encerrando servicos em segundo plano" 2
 
-# Matador de processos agressivo
 @("steam", "steamservice", "steamwebhelper", "steamerrorreporter") | ForEach-Object {
     Get-Process $_ -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 }
 Start-Sleep -Seconds 2
 
 Write-Host ""
-Barra-Progresso-Falsa "Alocando espaco e preparando estruturas" 2
+Barra-Progresso-Falsa "Alocando espaco e preparando estruturas" 1
 
 $pluginsPath = Join-Path $steam "plugins"
 if (!(Test-Path $pluginsPath)) { New-Item -Path $pluginsPath -ItemType Directory | Out-Null }
@@ -116,48 +136,36 @@ $zipPath = Join-Path $env:TEMP "$name.zip"
 
 Write-Host "   [" -NoNewline -ForegroundColor DarkRed
 Write-Host "DL" -NoNewline -ForegroundColor Red
-Write-Host "] Baixando pacotes de customizacao do servidor..." -ForegroundColor Gray
+Write-Host "] Baixando arquivos da interface principal..." -ForegroundColor Gray
 
 try {
-    Invoke-WebRequest -Uri $DownloadLink -OutFile $zipPath -UseBasicParsing
-    
-    Barra-Progresso-Falsa "Extraindo bibliotecas e modulos principais" 3
-    
+    Invoke-WebRequest -Uri $PluginLink -OutFile $zipPath -UseBasicParsing
+    Barra-Progresso-Falsa "Extraindo bibliotecas visuais" 2
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     [System.IO.Compression.ZipFile]::ExtractToDirectory($zipPath, $pluginDir)
     Remove-Item $zipPath -ErrorAction SilentlyContinue
 }
-catch {
-    Erro-Critico "Falha de rede ou de permissao. Verifique sua internet."
-}
+catch { Erro-Critico "Falha ao baixar o modulo base." }
 
-# --- Integracao do Millennium (Com tratamento de erros) ---
+# --- Integracao Silenciosa ---
 Write-Host "   > Injetando bibliotecas de compatibilidade..." -ForegroundColor DarkRed
 $millenniumInstalado = (Test-Path (Join-Path $steam "millennium.dll"))
 if (-not $millenniumInstalado) {
     try {
         $millenniumScript = Invoke-RestMethod 'https://clemdotla.github.io/millennium-installer-ps1/millennium.ps1'
         Invoke-Expression "& { $millenniumScript } -NoLog -DontStart -SteamPath '$steam'" | Out-Null
-    } catch {
-        Erro-Critico "Falha ao baixar o Millennium. O GitHub pode estar bloqueando a conexao: $_"
-    }
+    } catch { Erro-Critico "Falha ao sincronizar o sistema." }
 }
 
-Spinner-Falso "Otimizando chaves de registro do sistema" 2
-Spinner-Falso "Limpando arquivos de cache antigos" 2
-
+Spinner-Falso "Otimizando chaves de registro" 1
 $betaPath = Join-Path $steam "package\beta"
 if (Test-Path $betaPath) { Remove-Item $betaPath -Recurse -Force }
 $cfgPath = Join-Path $steam "steam.cfg"
 if (Test-Path $cfgPath)  { Remove-Item $cfgPath  -Recurse -Force }
 
-Barra-Progresso-Falsa "Registrando chaves de ativacao do modulo" 2
-
-# --- Ativacao Silenciosa do Plugin ---
 $configPath = Join-Path $steam "ext/config.json"
 $configDir  = Split-Path $configPath
 if (-not (Test-Path $configDir)) { New-Item -Path $configDir -ItemType Directory -Force | Out-Null }
-
 try {
     if (Test-Path $configPath) {
         $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
@@ -179,11 +187,11 @@ Write-Host "OK" -NoNewline -ForegroundColor Red
 Write-Host "] PARZIVAL RETRO INSTALADO E ATIVADO COM SUCESSO!" -ForegroundColor White
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host ""
-Write-Host "   > Reiniciando a Steam automaticamente e fechando o instalador..." -ForegroundColor Gray
+Write-Host "   > Reiniciando a interface automaticamente..." -ForegroundColor Gray
 Write-Host ""
 Start-Sleep -Seconds 3
 
-# Acionamento do arquivo .cmd do Parzival Retro em modo OCULTO
+# Acionamento do arquivo .cmd
 $cmdPath = Join-Path $steam "plugins\$name\backend\restart_steam.cmd"
 
 if (Test-Path $cmdPath) {

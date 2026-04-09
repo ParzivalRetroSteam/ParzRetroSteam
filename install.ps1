@@ -12,7 +12,7 @@ if (-not $isAdmin) {
     exit
 }
 
-$Host.UI.RawUI.WindowTitle = "Parzival Retrô Steam - Setup"
+$Host.UI.RawUI.WindowTitle = "Parzival Retro Steam - Setup"
 $name  = "parzivalretrosteam"
 $ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -22,11 +22,11 @@ function Mostrar-Cabecalho {
     Clear-Host
     Write-Host ""
     Write-Host " ==========================================================" -ForegroundColor DarkRed
-    Write-Host "    ____    _    ____  _____ ___ __     __  _    _        " -ForegroundColor Red
-    Write-Host "   |  _ \  / \  |  _ \|__  /|_ _|\ \   / / / \  | |       " -ForegroundColor Red
-    Write-Host "   | |_) |/ _ \ | |_) | / /  | |  \ \ / / / _ \ | |       " -ForegroundColor Red
-    Write-Host "   |  __/| ___ \|  _ < / /_  | |   \ V / / ___ \| |___    " -ForegroundColor Red
-    Write-Host "   |_|  /_/   \_\_| \_\____||___|   \_/ /_/   \_\_____|   " -ForegroundColor Red
+    Write-Host "    ____    _    ____  _____ ___  __     __  _    _        " -ForegroundColor Red
+    Write-Host "   |  _ \  / \  |  _ \|__  /|_ _| \ \   / / / \  | |       " -ForegroundColor Red
+    Write-Host "   | |_) |/ _ \ | |_) | / /  | |   \ \ / / / _ \ | |       " -ForegroundColor Red
+    Write-Host "   |  __/| ___ \|  _ < / /_  | |    \ V / / ___ \| |___    " -ForegroundColor Red
+    Write-Host "   |_|  /_/   \_\_| \_\____||___|    \_/ /_/   \_\_____|   " -ForegroundColor Red
     Write-Host "                                                           " -ForegroundColor Red
     Write-Host "        P A R Z I V A L   R E T R O   S T E A M            " -ForegroundColor White
     Write-Host " ==========================================================" -ForegroundColor DarkRed
@@ -45,7 +45,7 @@ function Erro-Critico {
 Mostrar-Cabecalho
 
 # --- Trava de Seguranca 2: Verifica se a Steam esta instalada ---
-Write-Host "   — Verificando integridade do sistema hospedeiro..." -ForegroundColor DarkRed
+Write-Host "   > Verificando integridade do sistema hospedeiro..." -ForegroundColor DarkRed
 $steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam" -ErrorAction SilentlyContinue).InstallPath
 
 if (-not $steam -or -not (Test-Path $steam)) {
@@ -72,7 +72,7 @@ function Spinner-Falso {
 
 function Barra-Progresso-Falsa {
     param([string]$Tarefa, [int]$TempoSegundos)
-    Write-Host "   — $Tarefa..." -ForegroundColor DarkRed
+    Write-Host "   > $Tarefa..." -ForegroundColor DarkRed
     $largura = 40
     $passos = $largura
     $espera = ($TempoSegundos * 1000) / $passos
@@ -132,7 +132,7 @@ catch {
 }
 
 # --- Integracao do Millennium (Com tratamento de erros) ---
-Write-Host "   — Injetando bibliotecas de compatibilidade..." -ForegroundColor DarkRed
+Write-Host "   > Injetando bibliotecas de compatibilidade..." -ForegroundColor DarkRed
 $millenniumInstalado = (Test-Path (Join-Path $steam "millennium.dll"))
 if (-not $millenniumInstalado) {
     try {
@@ -179,7 +179,7 @@ Write-Host "OK" -NoNewline -ForegroundColor Red
 Write-Host "] PARZIVAL RETRO INSTALADO E ATIVADO COM SUCESSO!" -ForegroundColor White
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host ""
-Write-Host "   — Reiniciando a Steam automaticamente e fechando o instalador..." -ForegroundColor Gray
+Write-Host "   > Reiniciando a Steam automaticamente e fechando o instalador..." -ForegroundColor Gray
 Write-Host ""
 Start-Sleep -Seconds 3
 

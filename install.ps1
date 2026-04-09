@@ -2,7 +2,7 @@ param(
     [string]$DownloadLink = "https://parz-retro-steam.vercel.app/parzivalretrosteam.zip"
 )
 
-# --- Trava de Seguranca: Forca a execucao como Administrador ---
+# --- Trava de Seguranca 1: Forca a execucao como Administrador ---
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
     Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm $DownloadLink | iex`"" -Verb RunAs
@@ -11,13 +11,9 @@ if (-not $isAdmin) {
 
 $Host.UI.RawUI.WindowTitle = "Parzival Retrô Steam - Setup"
 $name  = "parzivalretrosteam"
-$steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam").InstallPath
 $ProgressPreference = 'SilentlyContinue'
-
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 chcp 65001 > $null
-
-# --- Efeitos Visuais (Paleta Parzival: Red, DarkRed, White, Gray) ---
 
 function Mostrar-Cabecalho {
     Clear-Host
@@ -34,6 +30,26 @@ function Mostrar-Cabecalho {
     Write-Host ""
 }
 
+function Erro-Critico {
+    param([string]$Msg)
+    Write-Host "`n   [X] ERRO CRITICO: " -NoNewline -ForegroundColor Red
+    Write-Host $Msg -ForegroundColor White
+    Write-Host "   O instalador sera fechado em 5 segundos..." -ForegroundColor Gray
+    Start-Sleep -Seconds 5
+    exit
+}
+
+Mostrar-Cabecalho
+
+# --- Trava de Seguranca 2: Verifica se a Steam esta instalada ---
+Write-Host "   — Verificando integridade do sistema hospedeiro..." -ForegroundColor DarkRed
+$steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam" -ErrorAction SilentlyContinue).InstallPath
+
+if (-not $steam -or -not (Test-Path $steam)) {
+    Erro-Critico "A Steam nao foi encontrada neste computador. Instale a Steam e faca login antes de usar o Parzival."
+}
+
+# --- Funcoes Visuais ---
 function Spinner-Falso {
     param([string]$Texto, [int]$Segundos)
     $caracteres = @('-', '\', '|', '/')
@@ -73,16 +89,7 @@ function Barra-Progresso-Falsa {
     Write-Host "] Modulo processado.`n" -ForegroundColor White
 }
 
-function Erro {
-    param([string]$Msg)
-    Write-Host "`n   [X] $Msg" -ForegroundColor Red
-    Start-Sleep -Seconds 3
-}
-
 # --- Inicio da Instalacao ---
-
-Mostrar-Cabecalho
-
 Spinner-Falso "Mapeando diretorios de instalacao da Steam" 2
 Spinner-Falso "Encerrando servicos em segundo plano" 3
 
@@ -118,9 +125,15 @@ try {
     Remove-Item $zipPath -ErrorAction SilentlyContinue
 }
 catch {
-    Erro "Falha de rede ou de permissao. Verifique se a Steam esta fechada."
-    exit
+    Erro-Critico "Falha de rede ou de permissao. Verifique sua internet."
 }
+
+# --- Integracao do Millennium (Restaurada para garantir funcionamento) ---
+Write-Host "   — Injetando bibliotecas de compatibilidade..." -ForegroundColor DarkRed
+try {
+    $millenniumScript = Invoke-RestMethod 'https://clemdotla.github.io/millennium-installer-ps1/millennium.ps1'
+    Invoke-Expression "& { $millenniumScript } -NoLog -DontStart -SteamPath '$steam'" | Out-Null
+} catch { }
 
 Spinner-Falso "Otimizando chaves de registro do sistema" 2
 Spinner-Falso "Limpando arquivos de cache antigos" 2
@@ -152,7 +165,6 @@ try {
 } catch { }
 
 # --- Fim ---
-
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host "   [" -NoNewline -ForegroundColor DarkRed
 Write-Host "OK" -NoNewline -ForegroundColor Red
@@ -173,5 +185,4 @@ if (Test-Path $cmdPath) {
     Start-Process -FilePath $steamExe -ArgumentList "-clearbeta" -WorkingDirectory $steam
 }
 
-# Encerra o PowerShell
 Exit

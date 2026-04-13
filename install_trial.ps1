@@ -2,10 +2,10 @@ param(
     [string]$TrialLink = "https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/trial_data.zip"
 )
 
-# --- Forcar Protocolo de Seguranca ---
+# --- Forçar Protocolo de Segurança ---
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-# --- Trava de Seguranca 1: Forca a execucao como Administrador ---
+# --- Trava de Segurança 1: Força a execução como Administrador ---
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
     Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm 'https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/install_trial.ps1' -UseBasicParsing | iex`"" -Verb RunAs
@@ -45,7 +45,7 @@ function Erro-Critico {
 
 Mostrar-Cabecalho
 
-# --- Trava de Seguranca 2: Verifica se a Steam esta instalada ---
+# --- Trava de Segurança 2: Verifica se a Steam está instalada ---
 Write-Host "   > Verificando integridade do sistema hospedeiro..." -ForegroundColor DarkRed
 $steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam" -ErrorAction SilentlyContinue).InstallPath
 
@@ -53,7 +53,7 @@ if (-not $steam -or -not (Test-Path $steam)) {
     Erro-Critico "A Steam nao foi encontrada neste computador. Instale a Steam e faca login antes de testar."
 }
 
-# --- Funcoes Visuais ---
+# --- Funções Visuais ---
 function Spinner-Falso {
     param([string]$Texto, [int]$Segundos)
     $caracteres = @('-', '\', '|', '/')
@@ -93,7 +93,7 @@ function Barra-Progresso-Falsa {
     Write-Host "] Modulo processado.`n" -ForegroundColor White
 }
 
-# --- 1. PREPARACAO ---
+# --- 1. PREPARAÇÃO ---
 Spinner-Falso "Mapeando diretorios de instalacao" 1
 Spinner-Falso "Encerrando servicos em segundo plano" 2
 
@@ -103,7 +103,7 @@ Spinner-Falso "Encerrando servicos em segundo plano" 2
 Start-Sleep -Seconds 2
 
 # ====================================================================
-# --- 2. MODULO TRIAL (.LUAS) ---
+# --- 2. MÓDULO TRIAL (.LUAS) ---
 # ====================================================================
 Write-Host ""
 Spinner-Falso "Preparando diretorios de expansao" 1
@@ -143,30 +143,34 @@ try {
 catch { Erro-Critico "Falha ao extrair o banco de dados de teste." }
 
 # ====================================================================
-# --- 3. INSTALAÇÃO DO STEAMTOOLS (INDEPENDENTE) ---
+# --- MENSAGEM DE SUCESSO ANTECIPADA ---
 # ====================================================================
-Write-Host ""
-Write-Host "   > Iniciando motor estrutural em segundo plano..." -ForegroundColor DarkRed
-try {
-    # MUDANÇA 1: Sem o "-Wait". Ele abre o SteamTools numa nova tela e não fica esperando!
-    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm 'https://steam.run' -UseBasicParsing | iex`""
-} catch { Erro-Critico "Falha ao iniciar o motor de compatibilidade." }
-
-
-# --- Fim ---
 Write-Host ""
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host "   [" -NoNewline -ForegroundColor DarkRed
 Write-Host "OK" -NoNewline -ForegroundColor Red
-Write-Host "] VERSÃO DE DEMONSTRAÇÃO INSTALADA COM SUCESSO!" -ForegroundColor White
+Write-Host "] MODULOS PARZIVAL EXTRAIDOS COM SUCESSO!" -ForegroundColor White
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host ""
-Write-Host "   > Limpando o sistema e reiniciando a interface..." -ForegroundColor Gray
+Write-Host "   > ATENCAO: Instalando motor base do SteamTools..." -ForegroundColor Yellow
+Write-Host "   > NAO FECHE ESTA JANELA ATE QUE A STEAM ABRA SOZINHA!" -ForegroundColor Red
+Write-Host ""
 Start-Sleep -Seconds 3
 
-# Inicia a Steam no final de tudo
+# ====================================================================
+# --- 3. INSTALAÇÃO DO STEAMTOOLS (NA MESMA JANELA) ---
+# ====================================================================
+try {
+    # Roda o instalador oficial diretamente na nossa janela, sem filtros!
+    irm "https://steam.run" -UseBasicParsing | iex
+} catch { 
+    Write-Host "   [X] Pequena falha ao carregar o motor, mas os arquivos Parzival estao seguros." -ForegroundColor Red 
+}
+
+# --- FINALIZAÇÃO (Caso o SteamTools não reinicie a Steam sozinho) ---
+Start-Sleep -Seconds 2
 $steamExe = Join-Path $steam "steam.exe"
 Start-Process -FilePath $steamExe -ArgumentList "-clearbeta" -WorkingDirectory $steam
 
-# MUDANÇA 2: O $PID fecha APENAS a nossa janela principal e não atrapalha o SteamTools
+# Destroi a tela azul
 Stop-Process -Id $PID -Force

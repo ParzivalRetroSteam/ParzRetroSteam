@@ -3,13 +3,13 @@ param(
     [string]$TrialLink = "https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/trial_data.zip"
 )
 
-# --- Forcar Protocolo de Seguranca ---
+# --- Forçar Protocolo de Segurança ---
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
-# --- Trava de Seguranca 1: Forca a execucao como Administrador ---
+# --- Trava de Segurança 1: Força a execução como Administrador ---
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm 'https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/install_trial.ps1' | iex`"" -Verb RunAs
+    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm 'https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/install_trial.ps1' -UseBasicParsing | iex`"" -Verb RunAs
     exit
 }
 
@@ -32,31 +32,31 @@ function Mostrar-Cabecalho {
     Write-Host " ==========================================================" -ForegroundColor DarkRed
     Write-Host ""
     Write-Host "   BEM-VINDO AO TEST DRIVE GRATUITO!" -ForegroundColor Yellow
-    Write-Host "   Esta versao instalara um pacote basico de demonstracao." -ForegroundColor Gray
+    Write-Host "   Esta versão instalará um pacote básico de demonstração." -ForegroundColor Gray
     Write-Host ""
     Start-Sleep -Seconds 3
 }
 
 function Erro-Critico {
     param([string]$Msg)
-    Write-Host "`n   [X] ERRO CRITICO: " -NoNewline -ForegroundColor Red
+    Write-Host "`n   [X] ERRO CRÍTICO: " -NoNewline -ForegroundColor Red
     Write-Host $Msg -ForegroundColor White
-    Write-Host "   O instalador sera fechado em 5 segundos..." -ForegroundColor Gray
+    Write-Host "   O instalador será fechado em 5 segundos..." -ForegroundColor Gray
     Start-Sleep -Seconds 5
     exit
 }
 
 Mostrar-Cabecalho
 
-# --- Trava de Seguranca 2: Verifica se a Steam esta instalada ---
+# --- Trava de Segurança 2: Verifica se a Steam está instalada ---
 Write-Host "   > Verificando integridade do sistema hospedeiro..." -ForegroundColor DarkRed
 $steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam" -ErrorAction SilentlyContinue).InstallPath
 
 if (-not $steam -or -not (Test-Path $steam)) {
-    Erro-Critico "A Steam nao foi encontrada neste computador. Instale a Steam e faca login antes de testar."
+    Erro-Critico "A Steam não foi encontrada neste computador. Instale a Steam e faça login antes de testar."
 }
 
-# --- Funcoes Visuais ---
+# --- Funções Visuais ---
 function Spinner-Falso {
     param([string]$Texto, [int]$Segundos)
     $caracteres = @('-', '\', '|', '/')
@@ -71,7 +71,7 @@ function Spinner-Falso {
     }
     Write-Host "`r   [" -NoNewline -ForegroundColor DarkRed
     Write-Host "OK" -NoNewline -ForegroundColor Red
-    Write-Host "] $Texto... Concluido!      " -ForegroundColor White
+    Write-Host "] $Texto... Concluído!      " -ForegroundColor White
 }
 
 function Barra-Progresso-Falsa {
@@ -93,12 +93,12 @@ function Barra-Progresso-Falsa {
     }
     Write-Host "`n   [" -NoNewline -ForegroundColor DarkRed
     Write-Host "OK" -NoNewline -ForegroundColor Red
-    Write-Host "] Modulo processado.`n" -ForegroundColor White
+    Write-Host "] Módulo processado.`n" -ForegroundColor White
 }
 
-# --- 1. PREPARACAO ---
-Spinner-Falso "Mapeando diretorios de instalacao" 1
-Spinner-Falso "Encerrando servicos em segundo plano" 2
+# --- 1. PREPARAÇÃO ---
+Spinner-Falso "Mapeando diretórios de instalação" 1
+Spinner-Falso "Encerrando serviços em segundo plano" 2
 
 @("steam", "steamservice", "steamwebhelper", "steamerrorreporter") | ForEach-Object {
     Get-Process $_ -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -106,10 +106,10 @@ Spinner-Falso "Encerrando servicos em segundo plano" 2
 Start-Sleep -Seconds 2
 
 # ====================================================================
-# --- 2. MODULO TRIAL (.LUAS) - AGORA VEM PRIMEIRO ---
+# --- 2. MÓDULO TRIAL (.LUAS) ---
 # ====================================================================
 Write-Host ""
-Spinner-Falso "Preparando diretorios de expansao" 1
+Spinner-Falso "Preparando diretórios de expansão" 1
 
 $dbPath = Join-Path $steam "config\stplug-in"
 if (!(Test-Path $dbPath)) { New-Item -Path $dbPath -ItemType Directory -Force | Out-Null }
@@ -118,11 +118,11 @@ $trialZipPath = Join-Path $env:TEMP "trial_data.zip"
 
 Write-Host "   [" -NoNewline -ForegroundColor DarkRed
 Write-Host "DL" -NoNewline -ForegroundColor Red
-Write-Host "] Baixando pacote de demonstracao..." -ForegroundColor Gray
+Write-Host "] Baixando pacote de demonstração..." -ForegroundColor Gray
 
 try {
     Invoke-WebRequest -Uri $TrialLink -OutFile $trialZipPath -UseBasicParsing
-    Barra-Progresso-Falsa "Injetando expansoes no nucleo do sistema" 3
+    Barra-Progresso-Falsa "Injetando expansões no núcleo do sistema" 3
     
     try {
         [System.IO.Compression.ZipFile]::ExtractToDirectory($trialZipPath, $dbPath)
@@ -144,13 +144,13 @@ try {
 catch { Erro-Critico "Falha ao extrair o banco de dados de teste." }
 
 # ====================================================================
-# --- 3. INSTALACAO DO STEAMTOOLS - AGORA VEM POR ULTIMO ---
+# --- 3. INSTALAÇÃO DO STEAMTOOLS (ISOLADO E BLINDADO) ---
 # ====================================================================
 Write-Host ""
-Write-Host "   > Injetando motor estrutural avancado (Isso pode levar alguns segundos)..." -ForegroundColor DarkRed
+Write-Host "   > Injetando motor estrutural avançado (Isso pode levar alguns segundos)..." -ForegroundColor DarkRed
 try {
-    # Comando puro e sem filtros, exatamente como funcionou para você!
-    irm "https://steam.run" | iex
+    # MUDANÇA PRINCIPAL: Abre o SteamTools em uma janela separada e ESPERA ele terminar!
+    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm 'https://steam.run' -UseBasicParsing | iex`"" -Wait
 } catch { Erro-Critico "Falha ao instalar o motor de compatibilidade." }
 
 
@@ -159,8 +159,14 @@ Write-Host ""
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host "   [" -NoNewline -ForegroundColor DarkRed
 Write-Host "OK" -NoNewline -ForegroundColor Red
-Write-Host "] VERSAO DE DEMONSTRACAO INSTALADA COM SUCESSO!" -ForegroundColor White
+Write-Host "] VERSÃO DE DEMONSTRAÇÃO INSTALADA COM SUCESSO!" -ForegroundColor White
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host ""
-Start-Sleep -Seconds 4
+Write-Host "   Pressione qualquer tecla para encerrar e abrir a Steam..." -ForegroundColor Gray
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+
+# Inicia a Steam no final de tudo
+$steamExe = Join-Path $steam "steam.exe"
+Start-Process -FilePath $steamExe -ArgumentList "-clearbeta" -WorkingDirectory $steam
+
 Exit

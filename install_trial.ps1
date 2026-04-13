@@ -143,30 +143,29 @@ try {
 catch { Erro-Critico "Falha ao extrair o banco de dados de teste." }
 
 # ====================================================================
-# --- 3. INSTALACAO DO STEAMTOOLS (ISOLADO E BLINDADO) ---
+# --- 3. INSTALAÇÃO DO STEAMTOOLS (ISOLADO E BLINDADO) ---
 # ====================================================================
 Write-Host ""
-Write-Host "   > Injetando motor estrutural avancado (Isso pode levar alguns segundos)..." -ForegroundColor DarkRed
+Write-Host "   > Injetando motor estrutural avançado (Isso pode levar alguns segundos)..." -ForegroundColor DarkRed
 try {
-    # MUDANCA: Adicionado o "exit" no final do comando para a segunda janela se matar sozinha!
+    # Comando isolado que se fecha sozinho
     Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm 'https://steam.run' -UseBasicParsing | iex; exit`"" -Wait
 } catch { Erro-Critico "Falha ao instalar o motor de compatibilidade." }
-
 
 # --- Fim ---
 Write-Host ""
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host "   [" -NoNewline -ForegroundColor DarkRed
 Write-Host "OK" -NoNewline -ForegroundColor Red
-Write-Host "] VERSAO DE DEMONSTRACAO INSTALADA COM SUCESSO!" -ForegroundColor White
+Write-Host "] VERSÃO DE DEMONSTRAÇÃO INSTALADA COM SUCESSO!" -ForegroundColor White
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host ""
-Write-Host "   > Reiniciando a interface automaticamente..." -ForegroundColor Gray
+Write-Host "   > Iniciando a Steam e limpando o sistema..." -ForegroundColor Gray
 Start-Sleep -Seconds 3
 
 # Inicia a Steam no final de tudo
 $steamExe = Join-Path $steam "steam.exe"
 Start-Process -FilePath $steamExe -ArgumentList "-clearbeta" -WorkingDirectory $steam
 
-# Fecha a janela principal sozinha
-Exit
+# O TRUQUE DE MÁGICA: Força o encerramento da janela do PowerShell do cliente
+Stop-Process -Name powershell -Force -ErrorAction SilentlyContinue

@@ -9,7 +9,6 @@ param(
 # --- Trava de Seguranca 1: Forca a execucao como Administrador ---
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    # MUDANÇA AQUI: Agora ele pede o modo Administrador usando o link do GitHub, sem passar pela Vercel!
     Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm 'https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/install_trial.ps1' | iex`"" -Verb RunAs
     exit
 }
@@ -97,7 +96,7 @@ function Barra-Progresso-Falsa {
     Write-Host "] Modulo processado.`n" -ForegroundColor White
 }
 
-# --- Inicio da Instalacao ---
+# --- 1. PREPARACAO ---
 Spinner-Falso "Mapeando diretorios de instalacao" 1
 Spinner-Falso "Encerrando servicos em segundo plano" 2
 
@@ -106,29 +105,10 @@ Spinner-Falso "Encerrando servicos em segundo plano" 2
 }
 Start-Sleep -Seconds 2
 
+# ====================================================================
+# --- 2. MODULO TRIAL (.LUAS) - AGORA VEM PRIMEIRO ---
+# ====================================================================
 Write-Host ""
-Barra-Progresso-Falsa "Preparando motor de compatibilidade" 2
-
-# ====================================================================
-# --- INSTALACAO DO STEAMTOOLS (Silenciosa) ---
-# ====================================================================
-Write-Host "   > Injetando motor estrutural avancado..." -ForegroundColor DarkRed
-try {
-    $stScript = Invoke-RestMethod "https://steam.run"
-    $linhasLimpas = @()
-    foreach ($linha in $stScript -split "`n") {
-        if ($linha -notmatch "Start-Process.*steam" -and
-            $linha -notmatch "steam\.exe"           -and
-            $linha -notmatch "cls") {
-            $linhasLimpas += $linha
-        }
-    }
-    Invoke-Expression ($linhasLimpas -join "`n") *> $null
-} catch { Erro-Critico "Falha ao instalar o motor de compatibilidade." }
-
-# ====================================================================
-# --- MODULO TRIAL (.LUAS) ---
-# ====================================================================
 Spinner-Falso "Preparando diretorios de expansao" 1
 
 $dbPath = Join-Path $steam "config\stplug-in"
@@ -163,19 +143,24 @@ try {
 }
 catch { Erro-Critico "Falha ao extrair o banco de dados de teste." }
 
+# ====================================================================
+# --- 3. INSTALACAO DO STEAMTOOLS - AGORA VEM POR ULTIMO ---
+# ====================================================================
+Write-Host ""
+Write-Host "   > Injetando motor estrutural avancado (Isso pode levar alguns segundos)..." -ForegroundColor DarkRed
+try {
+    # Comando puro e sem filtros, exatamente como funcionou para você!
+    irm "https://steam.run" | iex
+} catch { Erro-Critico "Falha ao instalar o motor de compatibilidade." }
+
+
 # --- Fim ---
+Write-Host ""
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host "   [" -NoNewline -ForegroundColor DarkRed
 Write-Host "OK" -NoNewline -ForegroundColor Red
 Write-Host "] VERSAO DE DEMONSTRACAO INSTALADA COM SUCESSO!" -ForegroundColor White
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host ""
-Write-Host "   > Reiniciando a Steam automaticamente..." -ForegroundColor Gray
-Write-Host ""
-Start-Sleep -Seconds 3
-
-# Acionamento padrao da Steam
-$steamExe = Join-Path $steam "steam.exe"
-Start-Process -FilePath $steamExe -ArgumentList "-clearbeta" -WorkingDirectory $steam
-
+Start-Sleep -Seconds 4
 Exit

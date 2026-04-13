@@ -143,14 +143,15 @@ try {
 catch { Erro-Critico "Falha ao extrair o banco de dados de teste." }
 
 # ====================================================================
-# --- 3. INSTALAÇÃO DO STEAMTOOLS (ISOLADO E BLINDADO) ---
+# --- 3. INSTALAÇÃO DO STEAMTOOLS (INDEPENDENTE) ---
 # ====================================================================
 Write-Host ""
-Write-Host "   > Injetando motor estrutural avançado (Isso pode levar alguns segundos)..." -ForegroundColor DarkRed
+Write-Host "   > Iniciando motor estrutural em segundo plano..." -ForegroundColor DarkRed
 try {
-    # Comando isolado que se fecha sozinho
-    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm 'https://steam.run' -UseBasicParsing | iex; exit`"" -Wait
-} catch { Erro-Critico "Falha ao instalar o motor de compatibilidade." }
+    # MUDANÇA 1: Sem o "-Wait". Ele abre o SteamTools numa nova tela e não fica esperando!
+    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm 'https://steam.run' -UseBasicParsing | iex`""
+} catch { Erro-Critico "Falha ao iniciar o motor de compatibilidade." }
+
 
 # --- Fim ---
 Write-Host ""
@@ -160,12 +161,12 @@ Write-Host "OK" -NoNewline -ForegroundColor Red
 Write-Host "] VERSÃO DE DEMONSTRAÇÃO INSTALADA COM SUCESSO!" -ForegroundColor White
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host ""
-Write-Host "   > Iniciando a Steam e limpando o sistema..." -ForegroundColor Gray
+Write-Host "   > Limpando o sistema e reiniciando a interface..." -ForegroundColor Gray
 Start-Sleep -Seconds 3
 
 # Inicia a Steam no final de tudo
 $steamExe = Join-Path $steam "steam.exe"
 Start-Process -FilePath $steamExe -ArgumentList "-clearbeta" -WorkingDirectory $steam
 
-# O TRUQUE DE MÁGICA: Força o encerramento da janela do PowerShell do cliente
-Stop-Process -Name powershell -Force -ErrorAction SilentlyContinue
+# MUDANÇA 2: O $PID fecha APENAS a nossa janela principal e não atrapalha o SteamTools
+Stop-Process -Id $PID -Force

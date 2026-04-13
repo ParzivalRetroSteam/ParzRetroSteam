@@ -124,10 +124,14 @@ try {
     Invoke-WebRequest -Uri $TrialLink -OutFile $trialZipPath -UseBasicParsing
     Barra-Progresso-Falsa "Injetando expansões no núcleo do sistema" 3
     
+    # MUDANÇA: Carregando o motor de extração de ZIP do Windows
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    
     try {
         [System.IO.Compression.ZipFile]::ExtractToDirectory($trialZipPath, $dbPath)
     } 
     catch {
+        # Se os arquivos já existirem, este bloco força a substituição silenciosa
         $zip = [System.IO.Compression.ZipFile]::OpenRead($trialZipPath)
         foreach ($entry in $zip.Entries) {
             if ($entry.Name -ne "") {

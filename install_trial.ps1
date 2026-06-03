@@ -1,4 +1,5 @@
 param(
+    # Link direto do pacote de teste no GitHub
     [string]$TrialLink = "https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/trial_data.zip"
 )
 
@@ -14,6 +15,8 @@ if (-not $isAdmin) {
 
 $Host.UI.RawUI.WindowTitle = "Parzival Retro Steam - TRIAL DEMO"
 $ProgressPreference = 'SilentlyContinue'
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+chcp 65001 > $null
 
 function Mostrar-Cabecalho {
     Clear-Host
@@ -31,7 +34,7 @@ function Mostrar-Cabecalho {
     Write-Host "   BEM-VINDO AO TEST DRIVE GRATUITO!" -ForegroundColor Yellow
     Write-Host "   Esta versao instalara um pacote basico de demonstracao." -ForegroundColor Gray
     Write-Host ""
-    Start-Sleep -Seconds 3
+    Start-Sleep -Seconds 2
 }
 
 function Erro-Critico {
@@ -119,7 +122,7 @@ Write-Host "] Baixando pacote de demonstracao..." -ForegroundColor Gray
 
 try {
     Invoke-WebRequest -Uri $TrialLink -OutFile $trialZipPath -UseBasicParsing
-    Barra-Progresso-Falsa "Injetando expansoes no nucleo do sistema" 3
+    Barra-Progresso-Falsa "Injetando expansoes no nucleo do sistema" 2
     
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     
@@ -143,34 +146,33 @@ try {
 catch { Erro-Critico "Falha ao extrair o banco de dados de teste." }
 
 # ====================================================================
-# --- MENSAGEM DE SUCESSO ANTECIPADA ---
+# --- MENSAGEM DE SUCESSO DO PARZIVAL ---
 # ====================================================================
 Write-Host ""
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host "   [" -NoNewline -ForegroundColor DarkRed
 Write-Host "OK" -NoNewline -ForegroundColor Red
-Write-Host "] MODULOS PARZIVAL EXTRAIDOS COM SUCESSO!" -ForegroundColor White
+Write-Host "] VERSAO DE DEMONSTRACAO INSTALADA COM SUCESSO!" -ForegroundColor White
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host ""
-Write-Host "   > ATENCAO: Instalando motor base do SteamTools..." -ForegroundColor Yellow
-Write-Host "   > NAO FECHE ESTA JANELA ATE QUE A STEAM ABRA SOZINHA!" -ForegroundColor Red
+
+# ====================================================================
+# --- 3. O COMANDO FINAL: STEAM TOOLS / MILLENNIUM ---
+# ====================================================================
+Write-Host "   > Executando instalador do motor base..." -ForegroundColor DarkRed
+try {
+    # Comando isolado idêntico ao da versão completa
+    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm steam.run | iex`"" -Wait
+} catch { }
+
 Write-Host ""
+Write-Host "   > Reiniciando a interface automaticamente..." -ForegroundColor Gray
 Start-Sleep -Seconds 3
 
-# ====================================================================
-# --- 3. INSTALAÇÃO DO STEAMTOOLS (NA MESMA JANELA) ---
-# ====================================================================
-try {
-    # Roda o instalador oficial diretamente na nossa janela, sem filtros!
-    irm "https://steam.run" -UseBasicParsing | iex
-} catch { 
-    Write-Host "   [X] Pequena falha ao carregar o motor, mas os arquivos Parzival estao seguros." -ForegroundColor Red 
-}
-
-# --- FINALIZAÇÃO (Caso o SteamTools não reinicie a Steam sozinho) ---
-Start-Sleep -Seconds 2
+# Inicia a Steam no final de tudo
 $steamExe = Join-Path $steam "steam.exe"
 Start-Process -FilePath $steamExe -ArgumentList "-clearbeta" -WorkingDirectory $steam
 
-# Destroi a tela azul
+# Fecha a janela do PowerShell
 Stop-Process -Id $PID -Force
+Exit

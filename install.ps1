@@ -8,7 +8,8 @@ param(
 # --- Trava de Seguranca 1: Forca a execucao como Administrador ---
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm 'https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/install.ps1' | iex`"" -Verb RunAs
+    # Usando parênteses aqui também para blindar contra o erro da barra (|)
+    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"iex (irm 'https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/install.ps1')`"" -Verb RunAs
     exit
 }
 
@@ -192,11 +193,12 @@ Write-Host ""
 Start-Sleep -Seconds 3
 
 # ====================================================================
-# --- O COMANDO QUE VOCÊ PEDIU (STEAM.RUN) BLINDADO ---
+# --- O COMANDO FINAL (STEAM.RUN) BLINDADO SEM BARRA DE SINTAXE ---
 # ====================================================================
 Write-Host "   > Executando instalador do Steam Tools..." -ForegroundColor DarkRed
 try {
-    Start-Process powershell.exe -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "irm steam.run | iex" -Wait
+    # Aqui usamos o iex(irm) no lugar do | para garantir 100% de sucesso
+    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"iex (irm steam.run)`"" -Wait
 } catch { }
 
 # Acionamento do arquivo .cmd

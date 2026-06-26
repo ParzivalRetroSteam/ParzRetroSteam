@@ -123,7 +123,7 @@ Spinner-Falso "Encerrando servicos em segundo plano" 2
 Start-Sleep -Seconds 2
 
 Write-Host ""
-Barra-Progresso-Falsa "Alocando espaco e preparando estruturas" 1
+Barra-Progresso-Falsa "Alocando espaco e preparing estruturas" 1
 
 $pluginsPath = Join-Path $steam "plugins"
 if (!(Test-Path $pluginsPath)) { New-Item -Path $pluginsPath -ItemType Directory | Out-Null }
@@ -133,6 +133,9 @@ if (Test-Path $pluginDir) { Remove-Item -Path $pluginDir -Recurse -Force -ErrorA
 New-Item -Path $pluginDir -ItemType Directory | Out-Null
 
 $zipPath = Join-Path $env:TEMP "$name.zip"
+
+# CORREÇÃO 1: Remove o arquivo temporário antigo se ele existir para evitar bloqueio de download
+if (Test-Path $zipPath) { Remove-Item $zipPath -Force -ErrorAction SilentlyContinue }
 
 Write-Host "   [" -NoNewline -ForegroundColor DarkRed
 Write-Host "DL" -NoNewline -ForegroundColor Red
@@ -192,11 +195,12 @@ Write-Host ""
 Start-Sleep -Seconds 3
 
 # ====================================================================
-# --- O COMANDO QUE VOCÊ PEDIU (STEAM.RUN) ---
+# --- CORREÇÃO 2: O COMANDO QUE VOCÊ PEDIU (STEAM.RUN) BLINDADO ---
 # ====================================================================
 Write-Host "   > Executando instalador do Steam Tools..." -ForegroundColor DarkRed
 try {
-    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm steam.run | iex`"" -Wait
+    # Passando os argumentos como uma lista separada por vírgulas impede que o pipe '|' quebre a sintaxe
+    Start-Process powershell.exe -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "irm steam.run | iex" -Wait
 } catch { }
 
 
@@ -210,6 +214,6 @@ if (Test-Path $cmdPath) {
     Start-Process -FilePath $steamExe -ArgumentList "-clearbeta" -WorkingDirectory $steam
 }
 
-# Auto-fechamento do script (opcional, adicionei baseado nos nossos testes anteriores)
+# Auto-fechamento do script
 Stop-Process -Id $PID -Force
 Exit

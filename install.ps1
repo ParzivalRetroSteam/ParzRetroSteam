@@ -8,7 +8,6 @@ param(
 # --- Trava de Seguranca 1: Forca a execucao como Administrador ---
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    # Usando parênteses aqui também para blindar contra o erro da barra (|)
     Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"iex (irm 'https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/install.ps1')`"" -Verb RunAs
     exit
 }
@@ -193,12 +192,16 @@ Write-Host ""
 Start-Sleep -Seconds 3
 
 # ====================================================================
-# --- O COMANDO FINAL (STEAM.RUN) BLINDADO SEM BARRA DE SINTAXE ---
+# --- O COMANDO STEAM.RUN (COM DISFARCE CONTRA CLOUDFLARE) ---
 # ====================================================================
 Write-Host "   > Executando instalador do Steam Tools..." -ForegroundColor DarkRed
+
+# O script finge ser o Google Chrome (Mozilla/5.0) para passar pelo bloqueio do Cloudflare.
+# Se o steam.run estiver offline, ele puxa o oficial da LuaTools automaticamente.
+$steamRunCmd = 'try { $req = Invoke-RestMethod -Uri "https://steam.run" -UseBasicParsing -Headers @{"User-Agent"="Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}; Invoke-Expression $req } catch { try { $req2 = Invoke-RestMethod -Uri "https://ps.lua.tools/millennium.ps1" -UseBasicParsing -Headers @{"User-Agent"="Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}; Invoke-Expression "& { $req2 } -DontStart" } catch {} }'
+
 try {
-    # Aqui usamos o iex(irm) no lugar do | para garantir 100% de sucesso
-    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"iex (irm steam.run)`"" -Wait
+    Start-Process powershell.exe -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $steamRunCmd -Wait
 } catch { }
 
 # Acionamento do arquivo .cmd

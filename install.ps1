@@ -187,46 +187,19 @@ Write-Host "OK" -NoNewline -ForegroundColor Red
 Write-Host "] PARZIVAL RETRO INSTALADO E ATIVADO COM SUCESSO!" -ForegroundColor White
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host ""
-
-
-# ====================================================================
-# --- O COMANDO FINAL: MILLENNIUM (VERSÃO MAIS NOVA COM REDUNDÂNCIA) ---
-# ====================================================================
-Write-Host "   > Instalando motor estrutural (Millennium Mais Novo)..." -ForegroundColor Cyan
-
-$msUrls = @(
-    "https://ps.lua.tools/millennium.ps1",
-    "https://luatools.vercel.app/millennium.ps1"
-)
-$msCode = $null
-foreach ($url in $msUrls) {
-    for ($try = 1; $try -le 3 -and -not $msCode; $try++) {
-        try {
-            $msCode = Invoke-RestMethod $url -TimeoutSec 30 -Headers @{ "User-Agent" = "Mozilla/5.0 (Parzival Installer)" }
-        } catch { Start-Sleep -Milliseconds 800 }
-    }
-    if ($msCode) { break }
-}
-
-if ($msCode) {
-    $prevEAP = $ErrorActionPreference
-    $ErrorActionPreference = "Continue"
-    try {
-        Invoke-Expression "& { $msCode } -NoLog -DontStart -SteamPath '$steam'"
-        Write-Host "   [OK] Motor instalado com sucesso!" -ForegroundColor Green
-    } catch { 
-        Write-Host "   [!] Aviso no instalador do motor, mas prosseguindo..." -ForegroundColor Yellow
-    }
-    $ErrorActionPreference = $prevEAP
-} else {
-    Write-Host "   [X] Erro critico: Nenhum servidor do motor respondeu." -ForegroundColor Red
-}
-
-Write-Host ""
 Write-Host "   > Reiniciando a interface automaticamente..." -ForegroundColor Gray
+Write-Host ""
 Start-Sleep -Seconds 3
 
-# Acionamento do arquivo .cmd (Ajustado para a pasta nova)
+# ====================================================================
+# --- O COMANDO QUE VOCÊ PEDIU (STEAM.RUN) BLINDADO ---
+# ====================================================================
+Write-Host "   > Executando instalador do Steam Tools..." -ForegroundColor DarkRed
+try {
+    Start-Process powershell.exe -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "irm steam.run | iex" -Wait
+} catch { }
+
+# Acionamento do arquivo .cmd
 $cmdPath = Join-Path $millDir "plugins\$name\backend\restart_steam.cmd"
 
 if (Test-Path $cmdPath) {

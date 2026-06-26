@@ -125,9 +125,6 @@ Start-Sleep -Seconds 2
 Write-Host ""
 Barra-Progresso-Falsa "Alocando espaco e preparando estruturas" 1
 
-# ====================================================================
-# --- ESTRUTURA NOVA DO MILLENNIUM (Pasta /millennium/plugins) ---
-# ====================================================================
 $millDir = Join-Path $steam "millennium"
 if (!(Test-Path $millDir)) { New-Item -Path $millDir -ItemType Directory -Force | Out-Null }
 
@@ -180,31 +177,61 @@ try {
     }
 } catch { }
 
-# --- Fim ---
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host "   [" -NoNewline -ForegroundColor DarkRed
 Write-Host "OK" -NoNewline -ForegroundColor Red
 Write-Host "] PARZIVAL RETRO INSTALADO E ATIVADO COM SUCESSO!" -ForegroundColor White
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host ""
-Write-Host "   > Reiniciando a interface automaticamente..." -ForegroundColor Gray
+
+
+# ====================================================================
+# --- INTEGRAÇÃO OFICIAL: STEAM TOOLS & MILLENNIUM ---
+# ====================================================================
+Write-Host "   > Baixando nucleo Steam Tools (via CloudRedirect)..." -ForegroundColor Cyan
+
+# 1. Instalador Direto do Steam Tools
+$stExe = Join-Path $steam "CloudRedirectCLI.exe"
+try {
+    Invoke-WebRequest -Uri "https://github.com/Selectively11/CloudRedirect/releases/latest/download/CloudRedirectCLI.exe" -OutFile $stExe -UseBasicParsing -TimeoutSec 60
+    Write-Host "   > Aplicando correcoes no nucleo (/stfixer)..." -ForegroundColor DarkRed
+    Start-Process $stExe "/stfixer" -Wait
+    if (Test-Path $stExe) { Remove-Item $stExe -Force -ErrorAction SilentlyContinue }
+    Write-Host "   [OK] Steam Tools injetado!" -ForegroundColor Green
+} catch {
+    Write-Host "   [!] Falha silenciosa no Steam Tools. O script continuara." -ForegroundColor Yellow
+}
+
 Write-Host ""
+Write-Host "   > Instalando motor Millennium..." -ForegroundColor Cyan
+
+# 2. Instalador Direto do Millennium (Com Redundância)
+$msUrls = @(
+    "https://ps.lua.tools/millennium.ps1",
+    "https://luatools.vercel.app/millennium.ps1"
+)
+$msCode = $null
+foreach ($url in $msUrls) {
+    for ($try = 1; $try -le 2 -and -not $msCode; $try++) {
+        try { $msCode = Invoke-RestMethod $url -TimeoutSec 30 } catch { Start-Sleep -Seconds 1 }
+    }
+    if ($msCode) { break }
+}
+
+if ($msCode) {
+    try {
+        Invoke-Expression "& { $msCode } -NoLog -DontStart -SteamPath '$steam'"
+        Write-Host "   [OK] Motor Millennium instalado!" -ForegroundColor Green
+    } catch { }
+} else {
+    Write-Host "   [!] Nao foi possivel conectar aos servidores do Millennium." -ForegroundColor Red
+}
+
+Write-Host ""
+Write-Host "   > Reiniciando a interface automaticamente..." -ForegroundColor Gray
 Start-Sleep -Seconds 3
 
-# ====================================================================
-# --- O COMANDO STEAM.RUN (COM DISFARCE CONTRA CLOUDFLARE) ---
-# ====================================================================
-Write-Host "   > Executando instalador do Steam Tools..." -ForegroundColor DarkRed
-
-# O script finge ser o Google Chrome (Mozilla/5.0) para passar pelo bloqueio do Cloudflare.
-# Se o steam.run estiver offline, ele puxa o oficial da LuaTools automaticamente.
-$steamRunCmd = 'try { $req = Invoke-RestMethod -Uri "https://steam.run" -UseBasicParsing -Headers @{"User-Agent"="Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}; Invoke-Expression $req } catch { try { $req2 = Invoke-RestMethod -Uri "https://ps.lua.tools/millennium.ps1" -UseBasicParsing -Headers @{"User-Agent"="Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}; Invoke-Expression "& { $req2 } -DontStart" } catch {} }'
-
-try {
-    Start-Process powershell.exe -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $steamRunCmd -Wait
-} catch { }
-
-# Acionamento do arquivo .cmd
+# Acionamento final
 $cmdPath = Join-Path $millDir "plugins\$name\backend\restart_steam.cmd"
 
 if (Test-Path $cmdPath) {

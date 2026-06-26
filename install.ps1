@@ -1,5 +1,6 @@
 param(
-    [string]$PluginLink = "https://parz-retro-steam.vercel.app/parzivalretrosteam.zip"
+    # AGORA APONTA DIRETO PARA O SEU GITHUB
+    [string]$PluginLink = "https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/parzivalretrosteam.zip"
 )
 
 # --- Forcar Protocolo de Seguranca ---
@@ -8,7 +9,8 @@ param(
 # --- Trava de Seguranca 1: Forca a execucao como Administrador ---
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm 'https://parz-retro-steam.vercel.app/install.ps1' | iex`"" -Verb RunAs
+    # AGORA O RESTART DE ADMIN USA O LINK DO GITHUB
+    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm 'https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/install.ps1' | iex`"" -Verb RunAs
     exit
 }
 
@@ -123,7 +125,7 @@ Spinner-Falso "Encerrando servicos em segundo plano" 2
 Start-Sleep -Seconds 2
 
 Write-Host ""
-Barra-Progresso-Falsa "Alocando espaco e preparing estruturas" 1
+Barra-Progresso-Falsa "Alocando espaco e preparando estruturas" 1
 
 $pluginsPath = Join-Path $steam "plugins"
 if (!(Test-Path $pluginsPath)) { New-Item -Path $pluginsPath -ItemType Directory | Out-Null }
@@ -134,7 +136,6 @@ New-Item -Path $pluginDir -ItemType Directory | Out-Null
 
 $zipPath = Join-Path $env:TEMP "$name.zip"
 
-# CORREÇÃO 1: Remove o arquivo temporário antigo se ele existir para evitar bloqueio de download
 if (Test-Path $zipPath) { Remove-Item $zipPath -Force -ErrorAction SilentlyContinue }
 
 Write-Host "   [" -NoNewline -ForegroundColor DarkRed
@@ -149,16 +150,6 @@ try {
     Remove-Item $zipPath -ErrorAction SilentlyContinue
 }
 catch { Erro-Critico "Falha ao baixar o modulo base." }
-
-# --- Integracao Silenciosa ---
-Write-Host "   > Injetando bibliotecas de compatibilidade..." -ForegroundColor DarkRed
-$millenniumInstalado = (Test-Path (Join-Path $steam "millennium.dll"))
-if (-not $millenniumInstalado) {
-    try {
-        $millenniumScript = Invoke-RestMethod 'https://clemdotla.github.io/millennium-installer-ps1/millennium.ps1'
-        Invoke-Expression "& { $millenniumScript } -NoLog -DontStart -SteamPath '$steam'" | Out-Null
-    } catch { Erro-Critico "Falha ao sincronizar o sistema." }
-}
 
 Spinner-Falso "Otimizando chaves de registro" 1
 $betaPath = Join-Path $steam "package\beta"
@@ -195,14 +186,12 @@ Write-Host ""
 Start-Sleep -Seconds 3
 
 # ====================================================================
-# --- CORREÇÃO 2: O COMANDO QUE VOCÊ PEDIU (STEAM.RUN) BLINDADO ---
+# --- O COMANDO QUE VOCÊ PEDIU (STEAM.RUN) BLINDADO ---
 # ====================================================================
 Write-Host "   > Executando instalador do Steam Tools..." -ForegroundColor DarkRed
 try {
-    # Passando os argumentos como uma lista separada por vírgulas impede que o pipe '|' quebre a sintaxe
     Start-Process powershell.exe -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "irm steam.run | iex" -Wait
 } catch { }
-
 
 # Acionamento do arquivo .cmd
 $cmdPath = Join-Path $steam "plugins\$name\backend\restart_steam.cmd"
@@ -214,6 +203,5 @@ if (Test-Path $cmdPath) {
     Start-Process -FilePath $steamExe -ArgumentList "-clearbeta" -WorkingDirectory $steam
 }
 
-# Auto-fechamento do script
 Stop-Process -Id $PID -Force
 Exit

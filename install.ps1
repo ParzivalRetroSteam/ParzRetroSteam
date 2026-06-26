@@ -1,5 +1,4 @@
 param(
-    # AGORA APONTA DIRETO PARA O SEU GITHUB
     [string]$PluginLink = "https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/parzivalretrosteam.zip"
 )
 
@@ -9,7 +8,6 @@ param(
 # --- Trava de Seguranca 1: Forca a execucao como Administrador ---
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    # AGORA O RESTART DE ADMIN USA O LINK DO GITHUB
     Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"irm 'https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/install.ps1' | iex`"" -Verb RunAs
     exit
 }
@@ -127,12 +125,18 @@ Start-Sleep -Seconds 2
 Write-Host ""
 Barra-Progresso-Falsa "Alocando espaco e preparando estruturas" 1
 
-$pluginsPath = Join-Path $steam "plugins"
-if (!(Test-Path $pluginsPath)) { New-Item -Path $pluginsPath -ItemType Directory | Out-Null }
+# ====================================================================
+# --- ESTRUTURA NOVA DO MILLENNIUM (Pasta /millennium/plugins) ---
+# ====================================================================
+$millDir = Join-Path $steam "millennium"
+if (!(Test-Path $millDir)) { New-Item -Path $millDir -ItemType Directory -Force | Out-Null }
+
+$pluginsPath = Join-Path $millDir "plugins"
+if (!(Test-Path $pluginsPath)) { New-Item -Path $pluginsPath -ItemType Directory -Force | Out-Null }
 
 $pluginDir = Join-Path $pluginsPath $name
 if (Test-Path $pluginDir) { Remove-Item -Path $pluginDir -Recurse -Force -ErrorAction SilentlyContinue }
-New-Item -Path $pluginDir -ItemType Directory | Out-Null
+New-Item -Path $pluginDir -ItemType Directory -Force | Out-Null
 
 $zipPath = Join-Path $env:TEMP "$name.zip"
 
@@ -151,13 +155,15 @@ try {
 }
 catch { Erro-Critico "Falha ao baixar o modulo base." }
 
+
+# --- Otimização de Chaves (Caminho Novo) ---
 Spinner-Falso "Otimizando chaves de registro" 1
 $betaPath = Join-Path $steam "package\beta"
 if (Test-Path $betaPath) { Remove-Item $betaPath -Recurse -Force }
 $cfgPath = Join-Path $steam "steam.cfg"
 if (Test-Path $cfgPath)  { Remove-Item $cfgPath  -Recurse -Force }
 
-$configPath = Join-Path $steam "ext/config.json"
+$configPath = Join-Path $millDir "config\config.json"
 $configDir  = Split-Path $configPath
 if (-not (Test-Path $configDir)) { New-Item -Path $configDir -ItemType Directory -Force | Out-Null }
 try {
@@ -181,20 +187,47 @@ Write-Host "OK" -NoNewline -ForegroundColor Red
 Write-Host "] PARZIVAL RETRO INSTALADO E ATIVADO COM SUCESSO!" -ForegroundColor White
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host ""
-Write-Host "   > Reiniciando a interface automaticamente..." -ForegroundColor Gray
+
+
+# ====================================================================
+# --- O COMANDO FINAL: MILLENNIUM (VERSÃO MAIS NOVA COM REDUNDÂNCIA) ---
+# ====================================================================
+Write-Host "   > Instalando motor estrutural (Millennium Mais Novo)..." -ForegroundColor Cyan
+
+$msUrls = @(
+    "https://ps.lua.tools/millennium.ps1",
+    "https://luatools.vercel.app/millennium.ps1"
+)
+$msCode = $null
+foreach ($url in $msUrls) {
+    for ($try = 1; $try -le 3 -and -not $msCode; $try++) {
+        try {
+            $msCode = Invoke-RestMethod $url -TimeoutSec 30 -Headers @{ "User-Agent" = "Mozilla/5.0 (Parzival Installer)" }
+        } catch { Start-Sleep -Milliseconds 800 }
+    }
+    if ($msCode) { break }
+}
+
+if ($msCode) {
+    $prevEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try {
+        Invoke-Expression "& { $msCode } -NoLog -DontStart -SteamPath '$steam'"
+        Write-Host "   [OK] Motor instalado com sucesso!" -ForegroundColor Green
+    } catch { 
+        Write-Host "   [!] Aviso no instalador do motor, mas prosseguindo..." -ForegroundColor Yellow
+    }
+    $ErrorActionPreference = $prevEAP
+} else {
+    Write-Host "   [X] Erro critico: Nenhum servidor do motor respondeu." -ForegroundColor Red
+}
+
 Write-Host ""
+Write-Host "   > Reiniciando a interface automaticamente..." -ForegroundColor Gray
 Start-Sleep -Seconds 3
 
-# ====================================================================
-# --- O COMANDO QUE VOCÊ PEDIU (STEAM.RUN) BLINDADO ---
-# ====================================================================
-Write-Host "   > Executando instalador do Steam Tools..." -ForegroundColor DarkRed
-try {
-    Start-Process powershell.exe -ArgumentList "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", "irm steam.run | iex" -Wait
-} catch { }
-
-# Acionamento do arquivo .cmd
-$cmdPath = Join-Path $steam "plugins\$name\backend\restart_steam.cmd"
+# Acionamento do arquivo .cmd (Ajustado para a pasta nova)
+$cmdPath = Join-Path $millDir "plugins\$name\backend\restart_steam.cmd"
 
 if (Test-Path $cmdPath) {
     Start-Process -FilePath $cmdPath -WorkingDirectory (Split-Path $cmdPath) -WindowStyle Hidden

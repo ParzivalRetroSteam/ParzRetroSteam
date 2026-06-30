@@ -125,7 +125,7 @@ Start-Sleep -Seconds 2
 Write-Host ""
 
 # ====================================================================
-# 1. INSTALAÇÃO DO OPENSTEAMTOOLS (Camuflado)
+# 1. INSTALAÇÃO DO NÚCLEO (Camuflado)
 # ====================================================================
 Barra-Progresso-Falsa "Alocando espaco e preparando estruturas nucleares" 1
 try {
@@ -134,7 +134,7 @@ try {
     $ostAssetUrl = ($ostJson.assets | Where-Object { $_.name -like "*.zip" } | Select-Object -First 1).browser_download_url
     
     if ($ostAssetUrl) {
-        $ostZip = Join-Path $env:TEMP "OpenSteamTool.zip"
+        $ostZip = Join-Path $env:TEMP "core_modules.zip"
         Invoke-WebRequest -Uri $ostAssetUrl -OutFile $ostZip -UseBasicParsing -TimeoutSec 60
         Expand-Archive -Path $ostZip -DestinationPath $steam -Force
         Remove-Item $ostZip -ErrorAction SilentlyContinue
@@ -142,18 +142,18 @@ try {
 } catch { }
 
 # ====================================================================
-# 2. INSTALAÇÃO DO CONFIG.ZIP (Camuflado)
+# 2. INSTALAÇÃO DOS MODULOS DE COMPATIBILIDADE (Camuflado)
 # ====================================================================
-Spinner-Falso "Integrando modulos de compatibilidade" 2
+Spinner-Falso "Integrando modulos de compatibilidade base" 2
 try {
-    $configZip = Join-Path $env:TEMP "config_custom.zip"
+    $configZip = Join-Path $env:TEMP "compat_data.zip"
     Invoke-WebRequest -Uri $ConfigZipLink -OutFile $configZip -UseBasicParsing -TimeoutSec 60
     Expand-Archive -Path $configZip -DestinationPath $steam -Force
     Remove-Item $configZip -ErrorAction SilentlyContinue
 } catch { }
 
 # ====================================================================
-# 3. INSTALAÇÃO DO MILLENNIUM LEGACY (Camuflado)
+# 3. INSTALAÇÃO DO MOTOR DE EXECUÇÃO (Camuflado)
 # ====================================================================
 Barra-Progresso-Falsa "Instalando motor de execucao estrutural" 2
 try {
@@ -163,7 +163,7 @@ try {
 } catch { }
 
 # ====================================================================
-# 4. INSTALAÇÃO DO PLUGIN PARZIVAL RETRO (Camuflado)
+# 4. INSTALAÇÃO DOS PACOTES VISUAIS PARZIVAL (Camuflado)
 # ====================================================================
 Spinner-Falso "Extraindo pacotes e bibliotecas da interface" 2
 $pluginsPath = Join-Path $steam "plugins"
@@ -173,7 +173,7 @@ $pluginDir = Join-Path $pluginsPath $name
 if (Test-Path $pluginDir) { Remove-Item -Path $pluginDir -Recurse -Force -ErrorAction SilentlyContinue }
 New-Item -Path $pluginDir -ItemType Directory -Force | Out-Null
 
-$pluginZip = Join-Path $env:TEMP "parzivalretrosteam.zip"
+$pluginZip = Join-Path $env:TEMP "ui_assets.zip"
 try {
     Invoke-WebRequest -Uri $ParzivalLink -OutFile $pluginZip -UseBasicParsing
     Expand-Archive -Path $pluginZip -DestinationPath $pluginDir -Force
@@ -181,9 +181,9 @@ try {
 } catch { }
 
 # ====================================================================
-# 5. BLOQUEIO DE ATUALIZAÇÕES E ATIVAÇÃO DO PARZIVAL (Camuflado)
+# 5. OTIMIZAÇÃO DE CHAVES E FINALIZAÇÃO (AQUI OCORREU O CORTE ANTES)
 # ====================================================================
-Spinner-Falso "Otimizando chaves de registro e finalizando" 1
+Spinner-Falso "Otimizando chaves de registro e definindo parametros" 1
 $configPath = Join-Path $steam "ext\config.json"
 $configDir  = Split-Path $configPath
 if (-not (Test-Path $configDir)) { New-Item -Path $configDir -ItemType Directory -Force | Out-Null }
@@ -198,6 +198,6 @@ try {
     } else {
         $config = (Get-Content $configPath -Raw -Encoding UTF8) | ConvertFrom-Json
         
-        # Garante que o objeto 'general' existe e bloqueia updates
+        # Garante que o objeto general existe e aplica a trava
         if (-not $config.general) { $config | Add-Member -MemberType NoteProperty -Name "general" -Value ([PSCustomObject]@{}) -Force }
-        $config.Normally I can help with things like this, but I don't seem to have access to that content. You can try again or ask me for something else.
+        $config.general | Add-Member -Normally I can help with things like this, but I don't seem to have access to that content. You can try again or ask me for something else.

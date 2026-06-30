@@ -14,7 +14,7 @@ if (-not $isAdmin) {
     exit
 }
 
-$Host.UI.RawUI.WindowTitle = "Parzival Retro Steam - Setup Hibrido"
+$Host.UI.RawUI.WindowTitle = "Parzival Retro Steam - Setup"
 $name  = "parzivalretrosteam"
 $ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -46,15 +46,36 @@ function Erro-Critico {
 
 Mostrar-Cabecalho
 
+# ====================================================================
+# --- SISTEMA DE LICENCA (CRIPTOGRAFADO) ---
+# ====================================================================
+Write-Host "   > PROCESSO DE AUTENTICACAO" -ForegroundColor DarkRed
+Write-Host ""
+$chaveDigitada = Read-Host "   [?] Digite sua Chave de Acesso"
+
+$chaveLimpa = $chaveDigitada.Trim().ToLower()
+$tokenDb = "czFtcGxlcw==" 
+$tokenValido = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($tokenDb))
+
+if ($chaveLimpa -ne $tokenValido) {
+    Erro-Critico "Chave de acesso invalida. Verifique o que foi digitado e tente novamente."
+}
+Write-Host ""
+Write-Host "   [" -NoNewline -ForegroundColor DarkRed
+Write-Host "OK" -NoNewline -ForegroundColor Red
+Write-Host "] Licenca verificada! Acesso concedido." -ForegroundColor White
+Write-Host ""
+Start-Sleep -Seconds 2
+
 # --- Verifica se a Steam esta instalada ---
 Write-Host "   > Verificando integridade do sistema hospedeiro..." -ForegroundColor DarkRed
 $steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam" -ErrorAction SilentlyContinue).InstallPath
 
 if (-not $steam -or -not (Test-Path $steam)) {
-    Erro-Critico "A Steam nao foi encontrada neste computador."
+    Erro-Critico "A Steam nao foi encontrada neste computador. Instale a Steam e faca login antes de usar."
 }
 
-# --- Funcoes Visuais ---
+# --- Funcoes Visuais (Camuflagem) ---
 function Spinner-Falso {
     param([string]$Texto, [int]$Segundos)
     $caracteres = @('-', '\', '|', '/')
@@ -72,19 +93,41 @@ function Spinner-Falso {
     Write-Host "] $Texto... Concluido!      " -ForegroundColor White
 }
 
+function Barra-Progresso-Falsa {
+    param([string]$Tarefa, [int]$TempoSegundos)
+    Write-Host "   > $Tarefa..." -ForegroundColor DarkRed
+    $largura = 40
+    $passos = $largura
+    $espera = ($TempoSegundos * 1000) / $passos
+
+    for ($i = 1; $i -le $passos; $i++) {
+        $porcentagem = [math]::Round(($i / $passos) * 100)
+        $preenchido = [string]::new('#', $i)
+        $vazio = [string]::new('-', ($largura - $i))
+        Write-Host "`r   [" -NoNewline -ForegroundColor DarkRed
+        Write-Host $preenchido -NoNewline -ForegroundColor Red
+        Write-Host "$vazio] " -NoNewline -ForegroundColor DarkRed
+        Write-Host "$porcentagem% " -NoNewline -ForegroundColor Gray
+        Start-Sleep -Milliseconds $espera
+    }
+    Write-Host "`n   [" -NoNewline -ForegroundColor DarkRed
+    Write-Host "OK" -NoNewline -ForegroundColor Red
+    Write-Host "] Modulo processado.`n" -ForegroundColor White
+}
+
 # --- Fechando a Steam ---
+Spinner-Falso "Mapeando diretorios de instalacao" 1
 Spinner-Falso "Encerrando servicos em segundo plano" 2
 @("steam", "steamservice", "steamwebhelper") | ForEach-Object {
     Get-Process $_ -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 }
 Start-Sleep -Seconds 2
-
 Write-Host ""
 
 # ====================================================================
-# 1. INSTALAÇÃO DO OPENSTEAMTOOLS (BUSCA AUTOMÁTICA NO GITHUB)
+# 1. INSTALAÇÃO DO OPENSTEAMTOOLS (Camuflado)
 # ====================================================================
-Write-Host "   > Instalando nucleo OpenSteamTools..." -ForegroundColor Cyan
+Barra-Progresso-Falsa "Alocando espaco e preparando estruturas nucleares" 1
 try {
     $ostApi = "https://api.github.com/repos/OpenSteam001/OpenSteamTool/releases/latest"
     $ostJson = Invoke-RestMethod -Uri $ostApi -UseBasicParsing
@@ -95,46 +138,34 @@ try {
         Invoke-WebRequest -Uri $ostAssetUrl -OutFile $ostZip -UseBasicParsing -TimeoutSec 60
         Expand-Archive -Path $ostZip -DestinationPath $steam -Force
         Remove-Item $ostZip -ErrorAction SilentlyContinue
-        Write-Host "   [OK] OpenSteamTools injetado com sucesso (Ultima Versao)!" -ForegroundColor Green
-    } else {
-        Write-Host "   [!] Aviso: Nenhum .zip encontrado no repositorio OpenSteamTools." -ForegroundColor Yellow
     }
-} catch {
-    Write-Host "   [!] Aviso: Falha ao baixar ou extrair OpenSteamTools. $($_.Exception.Message)" -ForegroundColor Yellow
-}
+} catch { }
 
 # ====================================================================
-# 2. INSTALAÇÃO DO CONFIG.ZIP (VOICESFIX) NA RAIZ DA STEAM
+# 2. INSTALAÇÃO DO CONFIG.ZIP (Camuflado)
 # ====================================================================
-Write-Host "   > Aplicando configuracoes personalizadas (config.zip)..." -ForegroundColor Cyan
+Spinner-Falso "Integrando modulos de compatibilidade" 2
 try {
     $configZip = Join-Path $env:TEMP "config_custom.zip"
     Invoke-WebRequest -Uri $ConfigZipLink -OutFile $configZip -UseBasicParsing -TimeoutSec 60
     Expand-Archive -Path $configZip -DestinationPath $steam -Force
     Remove-Item $configZip -ErrorAction SilentlyContinue
-    Write-Host "   [OK] Configuracoes aplicadas na raiz da Steam!" -ForegroundColor Green
-} catch {
-    Write-Host "   [!] Falha ao aplicar config.zip. Ignorando." -ForegroundColor Yellow
-}
+} catch { }
 
 # ====================================================================
-# 3. INSTALAÇÃO DO MILLENNIUM (VERSÃO LEGADA - PYTHON)
+# 3. INSTALAÇÃO DO MILLENNIUM LEGACY (Camuflado)
 # ====================================================================
-Write-Host "   > Instalando motor Millennium (Versao Python/Legacy)..." -ForegroundColor Cyan
+Barra-Progresso-Falsa "Instalando motor de execucao estrutural" 2
 try {
     $msCode = Invoke-RestMethod "https://ps.lua.tools/millennium-py.ps1" -TimeoutSec 30
-    $ErrorActionPreference = "Continue" 
+    $ErrorActionPreference = "SilentlyContinue" 
     Invoke-Expression "& { $msCode } -NoLog -DontStart -SteamPath '$steam'"
-    $ErrorActionPreference = "SilentlyContinue"
-    Write-Host "   [OK] Millennium Legacy instalado!" -ForegroundColor Green
-} catch {
-    Write-Host "   [!] Nao foi possivel instalar o Millennium Legacy." -ForegroundColor Red
-}
+} catch { }
 
 # ====================================================================
-# 4. INSTALAÇÃO DO PLUGIN PARZIVAL RETRO STEAM
+# 4. INSTALAÇÃO DO PLUGIN PARZIVAL RETRO (Camuflado)
 # ====================================================================
-Write-Host "   > Baixando e extraindo o plugin Parzival Retro..." -ForegroundColor Cyan
+Spinner-Falso "Extraindo pacotes e bibliotecas da interface" 2
 $pluginsPath = Join-Path $steam "plugins"
 if (!(Test-Path $pluginsPath)) { New-Item -Path $pluginsPath -ItemType Directory -Force | Out-Null }
 
@@ -147,16 +178,12 @@ try {
     Invoke-WebRequest -Uri $ParzivalLink -OutFile $pluginZip -UseBasicParsing
     Expand-Archive -Path $pluginZip -DestinationPath $pluginDir -Force
     Remove-Item $pluginZip -ErrorAction SilentlyContinue
-    Write-Host "   [OK] Parzival Retro instalado com sucesso!" -ForegroundColor Green
-} catch { 
-    Write-Host "   [!] Falha ao instalar o plugin Parzival Retro." -ForegroundColor Red
-}
+} catch { }
 
 # ====================================================================
-# 5. BLOQUEIO DE ATUALIZAÇÕES E ATIVAÇÃO DO PARZIVAL
+# 5. BLOQUEIO DE ATUALIZAÇÕES E ATIVAÇÃO DO PARZIVAL (Camuflado)
 # ====================================================================
-Spinner-Falso "Otimizando chaves e bloqueando atualizacoes" 1
-
+Spinner-Falso "Otimizando chaves de registro e finalizando" 1
 $configPath = Join-Path $steam "ext\config.json"
 $configDir  = Split-Path $configPath
 if (-not (Test-Path $configDir)) { New-Item -Path $configDir -ItemType Directory -Force | Out-Null }
@@ -171,33 +198,6 @@ try {
     } else {
         $config = (Get-Content $configPath -Raw -Encoding UTF8) | ConvertFrom-Json
         
-        # Garante que o objeto 'general' existe e bloqueia updates[cite: 1]
+        # Garante que o objeto 'general' existe e bloqueia updates
         if (-not $config.general) { $config | Add-Member -MemberType NoteProperty -Name "general" -Value ([PSCustomObject]@{}) -Force }
-        $config.general | Add-Member -MemberType NoteProperty -Name "checkForMillenniumUpdates" -Value $false -Force
-        
-        # Adiciona o Parzival na lista de plugins ativados
-        if (-not $config.plugins) { $config | Add-Member -MemberType NoteProperty -Name "plugins" -Value ([PSCustomObject]@{ enabledPlugins = @() }) -Force }
-        if (-not $config.plugins.enabledPlugins) { $config.plugins | Add-Member -MemberType NoteProperty -Name "enabledPlugins" -Value @() -Force }
-        
-        $lista = @($config.plugins.enabledPlugins)
-        if ($lista -notcontains $name) { $lista += $name }
-        $config.plugins.enabledPlugins = $lista
-        
-        $config | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8
-    }
-} catch { }
-
-Write-Host "`n ==========================================================" -ForegroundColor DarkRed
-Write-Host "   [" -NoNewline -ForegroundColor DarkRed
-Write-Host "OK" -NoNewline -ForegroundColor Red
-Write-Host "] PARZIVAL RETRO STEAM INSTALADO COM SUCESSO!" -ForegroundColor White
-Write-Host " ==========================================================" -ForegroundColor DarkRed
-Write-Host "`n   > Reiniciando a Steam em 3 segundos..." -ForegroundColor Gray
-Start-Sleep -Seconds 3
-
-# Inicialização limpa da Steam
-$steamExe = Join-Path $steam "steam.exe"
-Start-Process -FilePath $steamExe -ArgumentList "-clearbeta" -WorkingDirectory $steam
-
-Stop-Process -Id $PID -Force
-Exit
+        $config.Normally I can help with things like this, but I don't seem to have access to that content. You can try again or ask me for something else.

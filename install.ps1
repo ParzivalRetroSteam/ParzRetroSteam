@@ -1,6 +1,6 @@
 param(
     # --- LINKS DE DOWNLOAD ---
-    [string]$PluginLink = "https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/parzivalretrosteam.zip",
+    [string]$ParzivalLink = "https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/parzivalretrosteam.zip",
     [string]$ConfigZipLink = "https://raw.githubusercontent.com/voicesfix/fix/main/config.zip"
 )
 
@@ -14,8 +14,8 @@ if (-not $isAdmin) {
     exit
 }
 
-$Host.UI.RawUI.WindowTitle = "Instalador Hibrido - Parzival Retro & OpenSteamTools"
-$name  = "luatools"
+$Host.UI.RawUI.WindowTitle = "Parzival Retro Steam - Setup Hibrido"
+$name  = "parzivalretrosteam"
 $ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 chcp 65001 > $null
@@ -132,7 +132,7 @@ try {
 }
 
 # ====================================================================
-# 4. INSTALAÇÃO DO PLUGIN (PARZIVAL) NA PASTA LEGACY (\plugins)
+# 4. INSTALAÇÃO DO PLUGIN PARZIVAL RETRO STEAM
 # ====================================================================
 Write-Host "   > Baixando e extraindo o plugin Parzival Retro..." -ForegroundColor Cyan
 $pluginsPath = Join-Path $steam "plugins"
@@ -144,16 +144,16 @@ New-Item -Path $pluginDir -ItemType Directory -Force | Out-Null
 
 $pluginZip = Join-Path $env:TEMP "parzivalretrosteam.zip"
 try {
-    Invoke-WebRequest -Uri $PluginLink -OutFile $pluginZip -UseBasicParsing
+    Invoke-WebRequest -Uri $ParzivalLink -OutFile $pluginZip -UseBasicParsing
     Expand-Archive -Path $pluginZip -DestinationPath $pluginDir -Force
     Remove-Item $pluginZip -ErrorAction SilentlyContinue
-    Write-Host "   [OK] Plugin Parzival instalado na pasta legada!" -ForegroundColor Green
+    Write-Host "   [OK] Parzival Retro instalado com sucesso!" -ForegroundColor Green
 } catch { 
-    Write-Host "   [!] Falha ao instalar o plugin." -ForegroundColor Red
+    Write-Host "   [!] Falha ao instalar o plugin Parzival Retro." -ForegroundColor Red
 }
 
 # ====================================================================
-# 5. BLOQUEIO DE ATUALIZAÇÕES DO MILLENNIUM (EXT\CONFIG.JSON)
+# 5. BLOQUEIO DE ATUALIZAÇÕES E ATIVAÇÃO DO PARZIVAL
 # ====================================================================
 Spinner-Falso "Otimizando chaves e bloqueando atualizacoes" 1
 
@@ -175,7 +175,7 @@ try {
         if (-not $config.general) { $config | Add-Member -MemberType NoteProperty -Name "general" -Value ([PSCustomObject]@{}) -Force }
         $config.general | Add-Member -MemberType NoteProperty -Name "checkForMillenniumUpdates" -Value $false -Force
         
-        # Adiciona o plugin na lista
+        # Adiciona o Parzival na lista de plugins ativados
         if (-not $config.plugins) { $config | Add-Member -MemberType NoteProperty -Name "plugins" -Value ([PSCustomObject]@{ enabledPlugins = @() }) -Force }
         if (-not $config.plugins.enabledPlugins) { $config.plugins | Add-Member -MemberType NoteProperty -Name "enabledPlugins" -Value @() -Force }
         
@@ -190,7 +190,7 @@ try {
 Write-Host "`n ==========================================================" -ForegroundColor DarkRed
 Write-Host "   [" -NoNewline -ForegroundColor DarkRed
 Write-Host "OK" -NoNewline -ForegroundColor Red
-Write-Host "] INSTALACAO HIBRIDA CONCLUIDA COM SUCESSO!" -ForegroundColor White
+Write-Host "] PARZIVAL RETRO STEAM INSTALADO COM SUCESSO!" -ForegroundColor White
 Write-Host " ==========================================================" -ForegroundColor DarkRed
 Write-Host "`n   > Reiniciando a Steam em 3 segundos..." -ForegroundColor Gray
 Start-Sleep -Seconds 3

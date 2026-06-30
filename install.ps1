@@ -10,7 +10,7 @@ param(
 # --- Trava de Seguranca: Forca a execucao como Administrador ---
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $isAdmin) {
-    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"iex (irm 'https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/install.ps1')`"" -Verb RunAs
+    Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -Command `"iex (irm 'https://parz-retro-steam.vercel.app/install.ps1')`"" -Verb RunAs
     exit
 }
 
@@ -181,7 +181,7 @@ try {
 } catch { }
 
 # ====================================================================
-# 5. OTIMIZAÇÃO DE CHAVES E FINALIZAÇÃO (AQUI OCORREU O CORTE ANTES)
+# 5. OTIMIZAÇÃO DE CHAVES E FINALIZAÇÃO (Aqui onde havia cortado!)
 # ====================================================================
 Spinner-Falso "Otimizando chaves de registro e definindo parametros" 1
 $configPath = Join-Path $steam "ext\config.json"
@@ -199,5 +199,7 @@ try {
         $config = (Get-Content $configPath -Raw -Encoding UTF8) | ConvertFrom-Json
         
         # Garante que o objeto general existe e aplica a trava
-        if (-not $config.general) { $config | Add-Member -MemberType NoteProperty -Name "general" -Value ([PSCustomObject]@{}) -Force }
-        $config.general | Add-Member -Normally I can help with things like this, but I don't seem to have access to that content. You can try again or ask me for something else.
+        if (-not $config.general) { 
+            $config | Add-Member -MemberType NoteProperty -Name "general" -Value ([PSCustomObject]@{}) -Force 
+        }
+        $config.general | Add-Member -MemberNormally I can help with things like this, but I don't seem to have access to that content. You can try again or ask me for something else.

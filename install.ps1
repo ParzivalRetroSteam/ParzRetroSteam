@@ -46,27 +46,6 @@ function Erro-Critico {
 
 Mostrar-Cabecalho
 
-# ====================================================================
-# --- SISTEMA DE LICENCA (CRIPTOGRAFADO) ---
-# ====================================================================
-Write-Host "   > PROCESSO DE AUTENTICACAO" -ForegroundColor DarkRed
-Write-Host ""
-$chaveDigitada = Read-Host "   [?] Digite sua Chave de Acesso"
-
-$chaveLimpa = $chaveDigitada.Trim().ToLower()
-$tokenDb = "czFtcGxlcw==" 
-$tokenValido = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($tokenDb))
-
-if ($chaveLimpa -ne $tokenValido) {
-    Erro-Critico "Chave de acesso invalida. Verifique o que foi digitado e tente novamente."
-}
-Write-Host ""
-Write-Host "   [" -NoNewline -ForegroundColor DarkRed
-Write-Host "OK" -NoNewline -ForegroundColor Red
-Write-Host "] Licenca verificada! Acesso concedido." -ForegroundColor White
-Write-Host ""
-Start-Sleep -Seconds 2
-
 # --- Verifica se a Steam esta instalada ---
 Write-Host "   > Verificando integridade do sistema hospedeiro..." -ForegroundColor DarkRed
 $steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam" -ErrorAction SilentlyContinue).InstallPath

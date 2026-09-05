@@ -170,7 +170,7 @@ try {
 # 5. OTIMIZAÇÃO DE CHAVES E FINALIZAÇÃO
 # ====================================================================
 Spinner-Falso "Otimizando chaves de registro e definindo parametros" 1
-$configPath = Join-Path $steam "ext\config.json"
+$configPath = Join-Path $steam "millennium\config\config.json"
 $configDir  = Split-Path $configPath
 if (-not (Test-Path $configDir)) { New-Item -Path $configDir -ItemType Directory -Force | Out-Null }
 

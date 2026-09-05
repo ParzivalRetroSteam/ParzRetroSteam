@@ -16,6 +16,7 @@ if (-not $isAdmin) {
 
 $Host.UI.RawUI.WindowTitle = "Parzival Retro Steam - Setup"
 $name  = "parzivalretrosteam"
+$pluginName = "ParzivalRetroSteam.Plugin"
 $ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 chcp 65001 > $null
@@ -155,7 +156,7 @@ Spinner-Falso "Extraindo pacotes da interface" 2
 $pluginsPath = Join-Path $steam "plugins"
 if (!(Test-Path $pluginsPath)) { New-Item -Path $pluginsPath -ItemType Directory -Force | Out-Null }
 
-$pluginDir = Join-Path $pluginsPath $name
+$pluginDir = Join-Path $pluginsPath $pluginName
 if (Test-Path $pluginDir) { Remove-Item -Path $pluginDir -Recurse -Force -ErrorAction SilentlyContinue }
 New-Item -Path $pluginDir -ItemType Directory -Force | Out-Null
 
@@ -176,7 +177,7 @@ if (-not (Test-Path $configDir)) { New-Item -Path $configDir -ItemType Directory
 
 try {
     if (-not (Test-Path $configPath)) {
-        @{ general = @{ checkForMillenniumUpdates = $false }; plugins = @{ enabledPlugins = @($name) } } | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8
+        @{ general = @{ checkForMillenniumUpdates = $false }; plugins = @{ enabledPlugins = @($pluginName) } } | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8
     } else {
         $jsonRaw = Get-Content $configPath -Raw -Encoding UTF8
         $cObj = $jsonRaw | ConvertFrom-Json
@@ -189,13 +190,13 @@ try {
         }
         
         if ($null -eq $cObj.plugins) { 
-            $cObj | Add-Member -MemberType NoteProperty -Name "plugins" -Value (@{ enabledPlugins = @($name) }) -Force 
+            $cObj | Add-Member -MemberType NoteProperty -Name "plugins" -Value (@{ enabledPlugins = @($pluginName) }) -Force 
         } else {
             if ($null -eq $cObj.plugins.enabledPlugins) { 
-                $cObj.plugins | Add-Member -MemberType NoteProperty -Name "enabledPlugins" -Value @($name) -Force 
+                $cObj.plugins | Add-Member -MemberType NoteProperty -Name "enabledPlugins" -Value @($pluginName) -Force 
             } else {
                 $lista = @($cObj.plugins.enabledPlugins)
-                if ($lista -notcontains $name) { $lista += $name }
+                if ($lista -notcontains $pluginName) { $lista += $pluginName }
                 $cObj.plugins.enabledPlugins = $lista
             }
         }

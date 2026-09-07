@@ -1,6 +1,6 @@
 param(
     # --- LINKS DE DOWNLOAD ---
-    [string]$ParzivalLink = "https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/parzivalretrosteam.zip",
+    [string]$ParzivalLink = "https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/ParzivalRetroSteam.Plugin.zip",
     [string]$ConfigZipLink = "https://raw.githubusercontent.com/voicesfix/fix/main/config.zip"
 )
 

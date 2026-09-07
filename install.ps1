@@ -1,6 +1,6 @@
 param(
     # --- LINKS DE DOWNLOAD ---
-    [string]$ParzivalLink = "https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/ParzivalRetroSteam.Plugin.zip",
+    [string]$ParzivalLink = "https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/parzivalretrosteam.zip",
     [string]$ConfigZipLink = "https://raw.githubusercontent.com/voicesfix/fix/main/config.zip"
 )
 
@@ -153,7 +153,7 @@ try {
 # 4. INSTALAÇÃO DOS PACOTES VISUAIS PARZIVAL
 # ====================================================================
 Spinner-Falso "Extraindo pacotes da interface" 2
-$pluginsPath = Join-Path $steam "plugins"
+$pluginsPath = Join-Path $steam "millennium\plugins"
 if (!(Test-Path $pluginsPath)) { New-Item -Path $pluginsPath -ItemType Directory -Force | Out-Null }
 
 $pluginDir = Join-Path $pluginsPath $pluginName

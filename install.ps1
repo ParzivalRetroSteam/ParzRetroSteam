@@ -167,6 +167,13 @@ try {
     Remove-Item $pluginZip -ErrorAction SilentlyContinue
 } catch { }
 
+# Detecta o identificador real do plugin a partir do plugin.json
+$enableName = $pluginName
+try {
+    $pjson = Get-Content (Join-Path $pluginDir "plugin.json") -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ($pjson.name) { $enableName = $pjson.name }
+} catch { }
+
 # ====================================================================
 # 5. OTIMIZAÇÃO DE CHAVES E FINALIZAÇÃO
 # ====================================================================
@@ -177,7 +184,7 @@ if (-not (Test-Path $configDir)) { New-Item -Path $configDir -ItemType Directory
 
 try {
     if (-not (Test-Path $configPath)) {
-        @{ general = @{ checkForMillenniumUpdates = $false }; plugins = @{ enabledPlugins = @($pluginName) } } | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8
+        @{ general = @{ checkForMillenniumUpdates = $false }; plugins = @{ enabledPlugins = @($enableName) } } | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8
     } else {
         $jsonRaw = Get-Content $configPath -Raw -Encoding UTF8
         $cObj = $jsonRaw | ConvertFrom-Json
@@ -190,13 +197,13 @@ try {
         }
         
         if ($null -eq $cObj.plugins) { 
-            $cObj | Add-Member -MemberType NoteProperty -Name "plugins" -Value (@{ enabledPlugins = @($pluginName) }) -Force 
+            $cObj | Add-Member -MemberType NoteProperty -Name "plugins" -Value (@{ enabledPlugins = @($enableName) }) -Force 
         } else {
             if ($null -eq $cObj.plugins.enabledPlugins) { 
-                $cObj.plugins | Add-Member -MemberType NoteProperty -Name "enabledPlugins" -Value @($pluginName) -Force 
+                $cObj.plugins | Add-Member -MemberType NoteProperty -Name "enabledPlugins" -Value @($enableName) -Force 
             } else {
                 $lista = @($cObj.plugins.enabledPlugins)
-                if ($lista -notcontains $pluginName) { $lista += $pluginName }
+                if ($lista -notcontains $enableName) { $lista += $enableName }
                 $cObj.plugins.enabledPlugins = $lista
             }
         }

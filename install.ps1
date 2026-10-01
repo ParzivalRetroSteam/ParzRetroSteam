@@ -1,6 +1,6 @@
 param(
     # --- LINKS DE DOWNLOAD ---
-    [string]$ParzivalLink = "https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/ParzivalRetroSteam.Plugin.zip",
+    [string]$ParzivalLink = "https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/parzivalretrosteam.zip",
     [string]$ConfigZipLink = "https://raw.githubusercontent.com/voicesfix/fix/main/config.zip"
 )
 
@@ -108,17 +108,12 @@ Write-Host ""
 # 1. INSTALAÇÃO DO NÚCLEO
 # ====================================================================
 Barra-Progresso-Falsa "Alocando espaco e preparando estruturas base" 1
-try {
-    $ostApi = "https://api.github.com/repos/OpenSteam001/OpenSteamTool/releases/latest"
-    $ostJson = Invoke-RestMethod -Uri $ostApi -UseBasicParsing
-    $ostAssetUrl = ($ostJson.assets | Where-Object { $_.name -like "*.zip" } | Select-Object -First 1).browser_download_url
-    
-    if ($ostAssetUrl) {
-        $ostZip = Join-Path $env:TEMP "core_modules.zip"
-        Invoke-WebRequest -Uri $ostAssetUrl -OutFile $ostZip -UseBasicParsing -TimeoutSec 60
-        Expand-Archive -Path $ostZip -DestinationPath $steam -Force
-        Remove-Item $ostZip -ErrorAction SilentlyContinue
-    }
+	try {
+    $ostAssetUrl = "https://github.com/madoiscool/BetterSteamTools/releases/download/v1.0.4/OpenSteamTool-v1.0.4-Release.zip"
+    $ostZip = Join-Path $env:TEMP "core_modules.zip"
+    Invoke-WebRequest -Uri $ostAssetUrl -OutFile $ostZip -UseBasicParsing -TimeoutSec 60
+    Expand-Archive -Path $ostZip -DestinationPath $steam -Force
+    Remove-Item $ostZip -ErrorAction SilentlyContinue
 } catch { }
 
 # ====================================================================
@@ -126,9 +121,11 @@ try {
 # ====================================================================
 Spinner-Falso "Integrando pacotes adicionais" 2
 try {
+    $stplugPath = Join-Path $steam "config\stplug-in"
+    if (!(Test-Path $stplugPath)) { New-Item -Path $stplugPath -ItemType Directory -Force | Out-Null }
     $configZip = Join-Path $env:TEMP "compat_data.zip"
     Invoke-WebRequest -Uri $ConfigZipLink -OutFile $configZip -UseBasicParsing -TimeoutSec 60
-    Expand-Archive -Path $configZip -DestinationPath $steam -Force
+    Expand-Archive -Path $configZip -DestinationPath $stplugPath -Force
     Remove-Item $configZip -ErrorAction SilentlyContinue
 } catch { }
 

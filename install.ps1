@@ -15,7 +15,7 @@ if (-not $isAdmin) {
 }
 
 $Host.UI.RawUI.WindowTitle = "Parzival Retro Steam - Setup"
-$name  = "parzivalretrosteam"
+$name       = "parzivalretrosteam"
 $pluginName = "ParzivalRetroSteam.Plugin"
 $ProgressPreference = 'SilentlyContinue'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -45,15 +45,65 @@ function Erro-Critico {
     exit
 }
 
+# --- Funcao para salvar JSON em UTF-8 SEM BOM (Evita reset do Millennium) ---
+function Salvar-JsonSemBom {
+    param(
+        [Parameter(Mandatory=$true)][string]$Caminho,
+        [Parameter(Mandatory=$true)]$ObjetoJson
+    )
+    $pasta = Split-Path $Caminho
+    if (-not (Test-Path $pasta)) {
+        New-Item -Path $pasta -ItemType Directory -Force | Out-Null
+    }
+    $conteudo = $ObjetoJson | ConvertTo-Json -Depth 10
+    $utf8SemBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllText($Caminho, $conteudo, $utf8SemBom)
+}
+
+# --- Funcao para extrair ZIP sem criar pasta raiz duplicada ---
+function Extrair-ZipNivelado {
+    param(
+        [string]$ZipPath,
+        [string]$DestinoFinal
+    )
+    $tempExtract = Join-Path $env:TEMP ("extract_" + [guid]::NewGuid().ToString("N"))
+    New-Item -Path $tempExtract -ItemType Directory -Force | Out-Null
+
+    Expand-Archive -Path $ZipPath -DestinationPath $tempExtract -Force
+
+    # Verifica se o ZIP tinha uma unica subpasta raiz contendo tudo
+    $itens = @(Get-ChildItem -Path $tempExtract -Force)
+    $origemCopia = $tempExtract
+    if ($itens.Count -eq 1 -and $itens[0].PSIsContainer) {
+        $origemCopia = $itens[0].FullName
+    }
+
+    if (-not (Test-Path $DestinoFinal)) {
+        New-Item -Path $DestinoFinal -ItemType Directory -Force | Out-Null
+    }
+
+    Copy-Item -Path "$origemCopia\*" -Destination $DestinoFinal -Recurse -Force
+    Remove-Item -Path $tempExtract -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 Mostrar-Cabecalho
 
-# --- Verifica se a Steam esta instalada ---
+# --- Verifica se a Steam esta instalada (HKLM e HKCU) ---
 Write-Host "   > Verificando integridade do sistema hospedeiro..." -ForegroundColor DarkRed
 $steam = (Get-ItemProperty "HKLM:\SOFTWARE\WOW6432Node\Valve\Steam" -ErrorAction SilentlyContinue).InstallPath
+if (-not $steam) {
+    $steam = (Get-ItemProperty "HKCU:\Software\Valve\Steam" -ErrorAction SilentlyContinue).SteamPath
+}
+if ($steam) { $steam = $steam.Replace('/', '\') }
 
 if (-not $steam -or -not (Test-Path $steam)) {
     Erro-Critico "A Steam nao foi encontrada neste computador. Instale a Steam e faca login antes de usar."
 }
+
+# --- Adiciona exclusao no Defender ANTES de extrair as DLLs ---
+try {
+    Add-MpPreference -ExclusionPath $steam -ErrorAction SilentlyContinue
+} catch { }
 
 # --- Funcoes Visuais ---
 function Spinner-Falso {
@@ -98,7 +148,7 @@ function Barra-Progresso-Falsa {
 # --- Fechando a Steam ---
 Spinner-Falso "Mapeando diretorios de instalacao" 1
 Spinner-Falso "Encerrando servicos em segundo plano" 2
-@("steam", "steamservice", "steamwebhelper") | ForEach-Object {
+@("steam", "steamservice", "steamwebhelper", "millennium") | ForEach-Object {
     Get-Process $_ -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 }
 Start-Sleep -Seconds 2
@@ -108,11 +158,11 @@ Write-Host ""
 # 1. INSTALAÇÃO DO NÚCLEO
 # ====================================================================
 Barra-Progresso-Falsa "Alocando espaco e preparando estruturas base" 1
-	try {
+try {
     $ostAssetUrl = "https://github.com/madoiscool/BetterSteamTools/releases/download/v1.0.4/OpenSteamTool-v1.0.4-Release.zip"
     $ostZip = Join-Path $env:TEMP "core_modules.zip"
     Invoke-WebRequest -Uri $ostAssetUrl -OutFile $ostZip -UseBasicParsing -TimeoutSec 60
-    Expand-Archive -Path $ostZip -DestinationPath $steam -Force
+    Extrair-ZipNivelado -ZipPath $ostZip -DestinoFinal $steam
     Remove-Item $ostZip -ErrorAction SilentlyContinue
 } catch { }
 
@@ -122,26 +172,39 @@ Barra-Progresso-Falsa "Alocando espaco e preparando estruturas base" 1
 Spinner-Falso "Integrando pacotes adicionais" 2
 try {
     $stplugPath = Join-Path $steam "config\stplug-in"
-    if (!(Test-Path $stplugPath)) { New-Item -Path $stplugPath -ItemType Directory -Force | Out-Null }
+    if (-not (Test-Path $stplugPath)) { New-Item -Path $stplugPath -ItemType Directory -Force | Out-Null }
     $configZip = Join-Path $env:TEMP "compat_data.zip"
     Invoke-WebRequest -Uri $ConfigZipLink -OutFile $configZip -UseBasicParsing -TimeoutSec 60
-    Expand-Archive -Path $configZip -DestinationPath $stplugPath -Force
+    Extrair-ZipNivelado -ZipPath $configZip -DestinoFinal $stplugPath
     Remove-Item $configZip -ErrorAction SilentlyContinue
 } catch { }
 
 # ====================================================================
-# 3. INSTALAÇÃO DO MOTOR DE EXECUÇÃO
+# 3. INSTALAÇÃO DO MOTOR DE EXECUÇÃO (MILLENNIUM)
 # ====================================================================
 Barra-Progresso-Falsa "Instalando motor de execucao" 2
 try {
-    $msApi = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases/latest"
-    $msRelease = Invoke-RestMethod -Uri $msApi -UseBasicParsing -TimeoutSec 30
-    $msAsset = $msRelease.assets | Where-Object { $_.name -like "*windows-x86_64.zip" } | Select-Object -First 1
+    $headers = @{ "User-Agent" = "ParzivalRetroSteam-Installer" }
+    $msApi = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases?per_page=15"
+    $msReleases = Invoke-RestMethod -Uri $msApi -Headers $headers -UseBasicParsing -TimeoutSec 30
+    
+    # Prioriza release estavel que contenha o pacote windows-x86_64.zip
+    $msAsset = $null
+    foreach ($rel in $msReleases) {
+        if (-not $rel.prerelease) {
+            $msAsset = $rel.assets | Where-Object { $_.name -like "*windows-x86_64.zip" } | Select-Object -First 1
+            if ($msAsset) { break }
+        }
+    }
+    if (-not $msAsset) {
+        $msAsset = $msReleases[0].assets | Where-Object { $_.name -like "*windows-x86_64.zip" } | Select-Object -First 1
+    }
 
     if ($msAsset) {
         $msZip = Join-Path $env:TEMP "engine_core.zip"
         Invoke-WebRequest -Uri $msAsset.browser_download_url -OutFile $msZip -UseBasicParsing -TimeoutSec 60
-        Expand-Archive -Path $msZip -DestinationPath $steam -Force
+        # Extrai nivelado direto na raiz da Steam (garante millennium.dll, user32.dll e pasta ext no lugar certo)
+        Extrair-ZipNivelado -ZipPath $msZip -DestinoFinal $steam
         Remove-Item $msZip -ErrorAction SilentlyContinue
     }
 } catch { }
@@ -150,71 +213,124 @@ try {
 # 4. INSTALAÇÃO DOS PACOTES VISUAIS PARZIVAL
 # ====================================================================
 Spinner-Falso "Extraindo pacotes da interface" 2
-$pluginsPath = Join-Path $steam "millennium\plugins"
-if (!(Test-Path $pluginsPath)) { New-Item -Path $pluginsPath -ItemType Directory -Force | Out-Null }
-
-$pluginDir = Join-Path $pluginsPath $pluginName
-if (Test-Path $pluginDir) { Remove-Item -Path $pluginDir -Recurse -Force -ErrorAction SilentlyContinue }
-New-Item -Path $pluginDir -ItemType Directory -Force | Out-Null
 
 $pluginZip = Join-Path $env:TEMP "ui_assets.zip"
-try {
-    Invoke-WebRequest -Uri $ParzivalLink -OutFile $pluginZip -UseBasicParsing
-    Expand-Archive -Path $pluginZip -DestinationPath $pluginDir -Force
-    Remove-Item $pluginZip -ErrorAction SilentlyContinue
-} catch { }
+$tempPluginDir = Join-Path $env:TEMP ("parz_plugin_" + [guid]::NewGuid().ToString("N"))
 
-# Detecta o identificador real do plugin a partir do plugin.json
 $enableName = $pluginName
-try {
-    $pjson = Get-Content (Join-Path $pluginDir "plugin.json") -Raw -Encoding UTF8 | ConvertFrom-Json
-    if ($pjson.name) { $enableName = $pjson.name }
-} catch { }
-
-# ====================================================================
-# 5. OTIMIZAÇÃO DE CHAVES E FINALIZAÇÃO
-# ====================================================================
-Spinner-Falso "Otimizando chaves de registro e definindo parametros" 1
-$configPath = Join-Path $steam "millennium\config\config.json"
-$configDir  = Split-Path $configPath
-if (-not (Test-Path $configDir)) { New-Item -Path $configDir -ItemType Directory -Force | Out-Null }
 
 try {
-    if (-not (Test-Path $configPath)) {
-        @{ general = @{ checkForMillenniumUpdates = $true }; plugins = @{ enabledPlugins = @($enableName) } } | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8
-    } else {
-        $jsonRaw = Get-Content $configPath -Raw -Encoding UTF8
-        $cObj = $jsonRaw | ConvertFrom-Json
-        
-        # Otimizado para nao ativar os filtros
-        if ($null -eq $cObj.general) { 
-            $cObj | Add-Member -MemberType NoteProperty -Name "general" -Value (@{ checkForMillenniumUpdates = $true }) -Force 
-        } else { 
-            $cObj.general.checkForMillenniumUpdates = $true 
+    Invoke-WebRequest -Uri $ParzivalLink -OutFile $pluginZip -UseBasicParsing -TimeoutSec 60
+    Extrair-ZipNivelado -ZipPath $pluginZip -DestinoFinal $tempPluginDir
+    Remove-Item $pluginZip -ErrorAction SilentlyContinue
+
+    # Localiza o plugin.json mesmo se estiver dentro de subpasta
+    $pjsonFile = Get-ChildItem -Path $tempPluginDir -Filter "plugin.json" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($pjsonFile) {
+        $pastaRealDoPlugin = $pjsonFile.Directory.FullName
+        $pjson = Get-Content $pjsonFile.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($pjson.name) {
+            $enableName = $pjson.name
         }
-        
-        if ($null -eq $cObj.plugins) { 
-            $cObj | Add-Member -MemberType NoteProperty -Name "plugins" -Value (@{ enabledPlugins = @($enableName) }) -Force 
-        } else {
-            if ($null -eq $cObj.plugins.enabledPlugins) { 
-                $cObj.plugins | Add-Member -MemberType NoteProperty -Name "enabledPlugins" -Value @($enableName) -Force 
-            } else {
-                $lista = @($cObj.plugins.enabledPlugins)
-                if ($lista -notcontains $enableName) { $lista += $enableName }
-                $cObj.plugins.enabledPlugins = $lista
+    } else {
+        $pastaRealDoPlugin = $tempPluginDir
+    }
+
+    # Instala nas duas estruturas de pastas de plugins (Padrao Novo: Steam\plugins | Legado: Steam\millennium\plugins)
+    $locaisPlugins = @(
+        (Join-Path $steam "plugins"),
+        (Join-Path $steam "millennium\plugins")
+    )
+
+    foreach ($basePluginPath in $locaisPlugins) {
+        if (-not (Test-Path $basePluginPath)) {
+            New-Item -Path $basePluginPath -ItemType Directory -Force | Out-Null
+        }
+        $destinoPlugin = Join-Path $basePluginPath $pluginName
+        if (Test-Path $destinoPlugin) {
+            Remove-Item -Path $destinoPlugin -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        New-Item -Path $destinoPlugin -ItemType Directory -Force | Out-Null
+        Copy-Item -Path "$pastaRealDoPlugin\*" -Destination $destinoPlugin -Recurse -Force
+    }
+} catch { } finally {
+    if (Test-Path $tempPluginDir) {
+        Remove-Item -Path $tempPluginDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
+# ====================================================================
+# 5. ATIVAÇÃO DO PLUGIN E CONFIG.JSON (EXT E MILLENNIUM)
+# ====================================================================
+Spinner-Falso "Otimizando chaves de registro e ativando plugin" 1
+
+# O Millennium moderno usa Steam\ext\config.json; versoes antigas usam Steam\millennium\config\config.json
+$caminhosConfig = @(
+    (Join-Path $steam "ext\config.json"),
+    (Join-Path $steam "millennium\config\config.json")
+)
+
+foreach ($configPath in $caminhosConfig) {
+    try {
+        $cObj = $null
+        if (Test-Path $configPath) {
+            try {
+                $jsonRaw = [System.IO.File]::ReadAllText($configPath, [System.Text.Encoding]::UTF8)
+                if (-not [string]::IsNullOrWhiteSpace($jsonRaw)) {
+                    $cObj = $jsonRaw | ConvertFrom-Json
+                }
+            } catch {
+                $cObj = $null
             }
         }
-        $cObj | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8
-    }
-} catch { }
+
+        if ($null -eq $cObj) {
+            $cObj = [PSCustomObject]@{
+                general = [PSCustomObject]@{
+                    checkForMillenniumUpdates = $true
+                }
+                plugins = [PSCustomObject]@{
+                    enabledPlugins = @([string]$enableName)
+                }
+            }
+        } else {
+            # Garante bloco general
+            if ($null -eq $cObj.PSObject.Properties['general'] -or $null -eq $cObj.general) {
+                $cObj | Add-Member -MemberType NoteProperty -Name "general" -Value ([PSCustomObject]@{ checkForMillenniumUpdates = $true }) -Force
+            } else {
+                $cObj.general | Add-Member -MemberType NoteProperty -Name "checkForMillenniumUpdates" -Value $true -Force
+            }
+
+            # Garante bloco plugins e lista enabledPlugins como Array real
+            $listaAtual = New-Object System.Collections.Generic.List[string]
+            if ($null -ne $cObj.PSObject.Properties['plugins'] -and $null -ne $cObj.plugins) {
+                if ($null -ne $cObj.plugins.PSObject.Properties['enabledPlugins'] -and $null -ne $cObj.plugins.enabledPlugins) {
+                    foreach ($item in @($cObj.plugins.enabledPlugins)) {
+                        if (-not [string]::IsNullOrWhiteSpace($item)) {
+                            [void]$listaAtual.Add([string]$item)
+                        }
+                    }
+                }
+            } else {
+                $cObj | Add-Member -MemberType NoteProperty -Name "plugins" -Value ([PSCustomObject]@{}) -Force
+            }
+
+            # Adiciona tanto o nome interno (plugin.json -> name) quanto o nome da pasta se necessario
+            if (-not $listaAtual.Contains([string]$enableName)) {
+                [void]$listaAtual.Add([string]$enableName)
+            }
+
+            $cObj.plugins | Add-Member -MemberType NoteProperty -Name "enabledPlugins" -Value ([string[]]$listaAtual.ToArray()) -Force
+        }
+
+        Salvar-JsonSemBom -Caminho $configPath -ObjetoJson $cObj
+    } catch { }
+}
 
 # ====================================================================
-# 6. OTIMIZAÇÃO DE VIGILÂNCIA DO SISTEMA
+# 6. FINALIZAÇÃO
 # ====================================================================
 Spinner-Falso "Otimizando parametros de vigilancia do sistema" 1
-try {
-    Add-MpPreference -ExclusionPath $steam -ErrorAction Stop
-} catch { }
 
 Write-Host "`n ==========================================================" -ForegroundColor DarkRed
 Write-Host "   [" -NoNewline -ForegroundColor DarkRed

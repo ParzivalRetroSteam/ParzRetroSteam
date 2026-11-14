@@ -181,16 +181,16 @@ if (-not (Test-Path $configDir)) { New-Item -Path $configDir -ItemType Directory
 
 try {
     if (-not (Test-Path $configPath)) {
-        @{ general = @{ checkForMillenniumUpdates = $false }; plugins = @{ enabledPlugins = @($enableName) } } | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8
+        @{ general = @{ checkForMillenniumUpdates = $true }; plugins = @{ enabledPlugins = @($enableName) } } | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8
     } else {
         $jsonRaw = Get-Content $configPath -Raw -Encoding UTF8
         $cObj = $jsonRaw | ConvertFrom-Json
         
         # Otimizado para nao ativar os filtros
         if ($null -eq $cObj.general) { 
-            $cObj | Add-Member -MemberType NoteProperty -Name "general" -Value (@{ checkForMillenniumUpdates = $false }) -Force 
+            $cObj | Add-Member -MemberType NoteProperty -Name "general" -Value (@{ checkForMillenniumUpdates = $true }) -Force 
         } else { 
-            $cObj.general.checkForMillenniumUpdates = $false 
+            $cObj.general.checkForMillenniumUpdates = $true 
         }
         
         if ($null -eq $cObj.plugins) { 

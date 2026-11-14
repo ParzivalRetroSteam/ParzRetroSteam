@@ -1,8 +1,13 @@
 param(
     # --- LINKS DE DOWNLOAD ---
-    [string]$ParzivalLink = "https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/parzivalretrosteam.zip",
+    [string]$ParzivalLink = "https://raw.githubusercontent.com/ParzivalRetroSteam/ParzRetroSteam/main/ParzivalRetroSteam.Plugin.zip",
     [string]$ConfigZipLink = "https://raw.githubusercontent.com/voicesfix/fix/main/config.zip"
 )
+
+# --- Converte automaticamente links /blob/ do GitHub para links diretos (raw) ---
+if ($ParzivalLink -match "^https://github\.com/([^/]+)/([^/]+)/blob/(.+)$") {
+    $ParzivalLink = "https://raw.githubusercontent.com/$($Matches[1])/$($Matches[2])/$($Matches[3])"
+}
 
 # --- Forcar Protocolo de Seguranca ---
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -145,7 +150,7 @@ function Barra-Progresso-Falsa {
     Write-Host "] Modulo processado.`n" -ForegroundColor White
 }
 
-# --- Fechando a Steam ---
+# --- Fechando a Steam e processos do Millennium ---
 Spinner-Falso "Mapeando diretorios de instalacao" 1
 Spinner-Falso "Encerrando servicos em segundo plano" 2
 @("steam", "steamservice", "steamwebhelper", "millennium") | ForEach-Object {
@@ -188,7 +193,6 @@ try {
     $msApi = "https://api.github.com/repos/SteamClientHomebrew/Millennium/releases?per_page=15"
     $msReleases = Invoke-RestMethod -Uri $msApi -Headers $headers -UseBasicParsing -TimeoutSec 30
     
-    # Prioriza release estavel que contenha o pacote windows-x86_64.zip
     $msAsset = $null
     foreach ($rel in $msReleases) {
         if (-not $rel.prerelease) {
@@ -203,18 +207,17 @@ try {
     if ($msAsset) {
         $msZip = Join-Path $env:TEMP "engine_core.zip"
         Invoke-WebRequest -Uri $msAsset.browser_download_url -OutFile $msZip -UseBasicParsing -TimeoutSec 60
-        # Extrai nivelado direto na raiz da Steam (garante millennium.dll, user32.dll e pasta ext no lugar certo)
         Extrair-ZipNivelado -ZipPath $msZip -DestinoFinal $steam
         Remove-Item $msZip -ErrorAction SilentlyContinue
     }
 } catch { }
 
 # ====================================================================
-# 4. INSTALAÇÃO DOS PACOTES VISUAIS PARZIVAL
+# 4. INSTALAÇÃO DOS PACOTES VISUAIS PARZIVAL (ParzivalRetroSteam.Plugin.zip)
 # ====================================================================
 Spinner-Falso "Extraindo pacotes da interface" 2
 
-$pluginZip = Join-Path $env:TEMP "ui_assets.zip"
+$pluginZip = Join-Path $env:TEMP "ParzivalRetroSteam.Plugin.zip"
 $tempPluginDir = Join-Path $env:TEMP ("parz_plugin_" + [guid]::NewGuid().ToString("N"))
 
 $enableName = $pluginName
@@ -224,11 +227,11 @@ try {
     Extrair-ZipNivelado -ZipPath $pluginZip -DestinoFinal $tempPluginDir
     Remove-Item $pluginZip -ErrorAction SilentlyContinue
 
-    # Localiza o plugin.json mesmo se estiver dentro de subpasta
+    # Localiza o plugin.json mesmo se estiver dentro de subpasta no ZIP
     $pjsonFile = Get-ChildItem -Path $tempPluginDir -Filter "plugin.json" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($pjsonFile) {
         $pastaRealDoPlugin = $pjsonFile.Directory.FullName
-        $pjson = Get-Content $pjsonFile.FullName -Raw -Encoding UTF8 | ConvertFrom-Json
+        $pjson = [System.IO.File]::ReadAllText($pjsonFile.FullName, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
         if ($pjson.name) {
             $enableName = $pjson.name
         }
@@ -236,7 +239,7 @@ try {
         $pastaRealDoPlugin = $tempPluginDir
     }
 
-    # Instala nas duas estruturas de pastas de plugins (Padrao Novo: Steam\plugins | Legado: Steam\millennium\plugins)
+    # Instala nas duas estruturas de pastas de plugins (Steam\plugins e Steam\millennium\plugins)
     $locaisPlugins = @(
         (Join-Path $steam "plugins"),
         (Join-Path $steam "millennium\plugins")
@@ -246,10 +249,17 @@ try {
         if (-not (Test-Path $basePluginPath)) {
             New-Item -Path $basePluginPath -ItemType Directory -Force | Out-Null
         }
-        $destinoPlugin = Join-Path $basePluginPath $pluginName
-        if (Test-Path $destinoPlugin) {
-            Remove-Item -Path $destinoPlugin -Recurse -Force -ErrorAction SilentlyContinue
+
+        # Limpa instalacoes anteriores
+        @($pluginName, $enableName, $name) | Select-Object -Unique | ForEach-Object {
+            $caminhoAntigo = Join-Path $basePluginPath $_
+            if (Test-Path $caminhoAntigo) {
+                Remove-Item -Path $caminhoAntigo -Recurse -Force -ErrorAction SilentlyContinue
+            }
         }
+
+        # Cria a pasta ParzivalRetroSteam.Plugin com o plugin.json na raiz dela
+        $destinoPlugin = Join-Path $basePluginPath $pluginName
         New-Item -Path $destinoPlugin -ItemType Directory -Force | Out-Null
         Copy-Item -Path "$pastaRealDoPlugin\*" -Destination $destinoPlugin -Recurse -Force
     }
@@ -260,15 +270,17 @@ try {
 }
 
 # ====================================================================
-# 5. ATIVAÇÃO DO PLUGIN E CONFIG.JSON (EXT E MILLENNIUM)
+# 5. ATIVAÇÃO AUTOMÁTICA DO PLUGIN NO MILLENNIUM
 # ====================================================================
 Spinner-Falso "Otimizando chaves de registro e ativando plugin" 1
 
-# O Millennium moderno usa Steam\ext\config.json; versoes antigas usam Steam\millennium\config\config.json
 $caminhosConfig = @(
     (Join-Path $steam "ext\config.json"),
     (Join-Path $steam "millennium\config\config.json")
 )
+
+# Garante que tanto o "name" interno do plugin.json quanto o nome da pasta estejam ativos
+$nomesParaAtivar = @([string]$enableName, [string]$pluginName) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
 
 foreach ($configPath in $caminhosConfig) {
     try {
@@ -290,18 +302,16 @@ foreach ($configPath in $caminhosConfig) {
                     checkForMillenniumUpdates = $true
                 }
                 plugins = [PSCustomObject]@{
-                    enabledPlugins = @([string]$enableName)
+                    enabledPlugins = [string[]]$nomesParaAtivar
                 }
             }
         } else {
-            # Garante bloco general
             if ($null -eq $cObj.PSObject.Properties['general'] -or $null -eq $cObj.general) {
                 $cObj | Add-Member -MemberType NoteProperty -Name "general" -Value ([PSCustomObject]@{ checkForMillenniumUpdates = $true }) -Force
             } else {
                 $cObj.general | Add-Member -MemberType NoteProperty -Name "checkForMillenniumUpdates" -Value $true -Force
             }
 
-            # Garante bloco plugins e lista enabledPlugins como Array real
             $listaAtual = New-Object System.Collections.Generic.List[string]
             if ($null -ne $cObj.PSObject.Properties['plugins'] -and $null -ne $cObj.plugins) {
                 if ($null -ne $cObj.plugins.PSObject.Properties['enabledPlugins'] -and $null -ne $cObj.plugins.enabledPlugins) {
@@ -315,9 +325,10 @@ foreach ($configPath in $caminhosConfig) {
                 $cObj | Add-Member -MemberType NoteProperty -Name "plugins" -Value ([PSCustomObject]@{}) -Force
             }
 
-            # Adiciona tanto o nome interno (plugin.json -> name) quanto o nome da pasta se necessario
-            if (-not $listaAtual.Contains([string]$enableName)) {
-                [void]$listaAtual.Add([string]$enableName)
+            foreach ($n in $nomesParaAtivar) {
+                if (-not $listaAtual.Contains($n)) {
+                    [void]$listaAtual.Add($n)
+                }
             }
 
             $cObj.plugins | Add-Member -MemberType NoteProperty -Name "enabledPlugins" -Value ([string[]]$listaAtual.ToArray()) -Force
